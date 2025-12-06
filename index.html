@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SQL-DMsystem管理后台</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="./libs/tailwind.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1' },
+                    },
+                    boxShadow: {
+                        'card': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(14, 165, 233, 0.3)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out forwards',
+                        'zoom-in': 'zoomIn 0.2s ease-out forwards',
+                        'slide-up': 'slideUp 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        zoomIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                    }
+                }
+            }
+        }
+    </script>
+    
+    
+    <!-- React & Icons -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.3.1",
+            "react-dom": "https://esm.sh/react-dom@18.3.1",
+            "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.344.0?external=react"
+        }
+    }
+    </script>
+    <script src="./libs/babel.min.js"></script>
+    <!-- SheetJS for Excel Import -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* 使用国内镜像源 fonts.loli.net 替代 fonts.googleapis.com */
+        @import url('https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+        
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 99px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+        
+        /* Custom Checkbox */
+        .custom-checkbox { appearance: none; background-color: #fff; margin: 0; font: inherit; color: currentColor; width: 1.15em; height: 1.15em; border: 2px solid #cbd5e1; border-radius: 0.35em; display: grid; place-content: center; transition: all 0.2s; }
+        .custom-checkbox::before { content: ""; width: 0.65em; height: 0.65em; transform: scale(0); transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em white; transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); }
+        .custom-checkbox:checked { background-color: #0ea5e9; border-color: #0ea5e9; }
+        .custom-checkbox:checked::before { transform: scale(1); }
+    </style>
+</head>
+<body class="text-slate-700 selection:bg-sky-100 selection:text-sky-700">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useCallback, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Settings, Plus, Trash2, User, Key, Shield, Save, X, 
+            Database, Search, RefreshCw, AlertCircle, CheckCircle, LogOut,
+            FileSpreadsheet, Upload, Edit, MoreHorizontal, CheckSquare, Square, Download,
+            Copy, Users, UserCheck, UserCog, ArrowRightLeft, AlertTriangle, Lock, ChevronRight
+        } from 'lucide-react';
+
+        // --- 预设配置区 ---
+        const PRESET_CONFIGS = [
+            {
+                name: "智能制造学院-早操数据库",
+                appId: "E7BcO1vNtlBAM0zKDXQLrKPr-gzGzoHsz",
+                appKey: "3QUGql9X3xbs5yTDg657DeUd",
+                apiUrl: "https://e7bco1vn.lc-cn-n1-shared.com/1.1/classes"
+            },
+            {
+                name: "长数科-早操数据库",
+                appId: "wGhLHtQZIcgSgdGWCxbXvOGv-gzGzoHsz",
+                appKey: "3Jp9Z9Hiw39NzdQURBRnm9xT",
+                apiUrl: "https://wghlhtqz.lc-cn-n1-shared.com/1.1/classes"
+            },
+            {
+                name: "长数科-查寝数据库",
+                appId: "lHeu5bwNCGW09E4HuF2cMkYa-gzGzoHsz",
+                appKey: "lAePnkqMmVSuBuAN00YAtVLp",
+                apiUrl: "https://lheu5bwn.lc-cn-n1-shared.com/1.1/classes"
+            }
+        ];
+
+        // --- API Service ---
+        const LCService = {
+            getHeaders(config) {
+                return {
+                    "X-LC-Id": config.appId,
+                    "X-LC-Key": config.appKey,
+                    "Content-Type": "application/json"
+                };
+            },
+
+            async checkConfig(config) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    const res = await fetch(`${config.apiUrl}/AdminUser?limit=1`, { 
+                        headers: this.getHeaders(config),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    if (!res.ok) throw new Error("连接失败，请检查配置或网络");
+                    return true;
+                } catch (e) { throw e; }
+            },
+
+            // 登录验证
+            async login(config, username, password) {
+                // 构建查询条件：用户名、密码匹配，且角色必须是 admin
+                const where = JSON.stringify({ 
+                    username: username, 
+                    password: password,
+                    role: "admin" 
+                });
+                
+                try {
+                    const res = await fetch(`${config.apiUrl}/AdminUser?where=${encodeURIComponent(where)}`, { 
+                        headers: this.getHeaders(config) 
+                    });
+                    
+                    if (!res.ok) throw new Error("验证请求失败");
+                    
+                    const data = await res.json();
+                    if (data.results && data.results.length > 0) {
+                        return data.results[0]; // 返回用户信息
+                    } else {
+                        throw new Error("账号或密码错误，或无管理员权限");
+                    }
+                } catch (e) {
+                    throw e;
+                }
+            },
+
+            async getUsers(config) {
+                const res = await fetch(`${config.apiUrl}/AdminUser?order=-createdAt&limit=1000`, { headers: this.getHeaders(config) });
+                if (!res.ok) throw new Error("获取用户列表失败");
+                const data = await res.json();
+                return data.results.filter(u => u.username);
+            },
+
+            async addUser(config, user) {
+                const res = await fetch(`${config.apiUrl}/AdminUser`, {
+                    method: 'POST',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(user)
+                });
+                if (!res.ok) throw new Error("添加用户失败");
+                return await res.json();
+            },
+
+            async updateUser(config, objectId, updates) {
+                const res = await fetch(`${config.apiUrl}/AdminUser/${objectId}`, {
+                    method: 'PUT',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(updates)
+                });
+                if (!res.ok) throw new Error("更新用户失败");
+                return true;
+            },
+
+            async deleteUser(config, objectId) {
+                const res = await fetch(`${config.apiUrl}/AdminUser/${objectId}`, {
+                    method: 'DELETE',
+                    headers: this.getHeaders(config)
+                });
+                if (!res.ok) throw new Error("删除用户失败");
+                return true;
+            },
+
+            async batchAddUsers(config, users) {
+                const results = { success: 0, failed: 0 };
+                const batchSize = 5;
+                for (let i = 0; i < users.length; i += batchSize) {
+                    const batch = users.slice(i, i + batchSize);
+                    await Promise.all(batch.map(u => 
+                        this.addUser(config, u)
+                            .then(() => results.success++)
+                            .catch(() => results.failed++)
+                    ));
+                }
+                return results;
+            },
+            
+            async batchDeleteUsers(config, ids) {
+                const idArray = Array.from(ids);
+                const batchSize = 5;
+                for (let i = 0; i < idArray.length; i += batchSize) {
+                    const batch = idArray.slice(i, i + batchSize);
+                    await Promise.all(batch.map(id => this.deleteUser(config, id)));
+                }
+                return true;
+            }
+        };
+
+        // --- Components ---
+
+        const Modal = ({ title, children, onClose, className = "" }) => (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+                <div className={`bg-white rounded-2xl shadow-2xl w-full overflow-hidden ring-1 ring-black/5 animate-zoom-in ${className || 'max-w-md'}`} onClick={e => e.stopPropagation()}>
+                    <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 className="font-bold text-lg text-slate-800">{title}</h3>
+                        {onClose && <button onClick={onClose} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X size={20} className="text-slate-400"/></button>}
+                    </div>
+                    <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                        {children}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, type = 'danger' }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={onCancel}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-zoom-in p-6 text-center" onClick={e => e.stopPropagation()}>
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${type === 'danger' ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500'}`}>
+                            <AlertTriangle size={28}/>
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 mb-2">{title}</h3>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6">{message}</p>
+                        <div className="flex gap-3">
+                            <button onClick={onCancel} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors">取消</button>
+                            <button onClick={onConfirm} className={`flex-1 py-3 rounded-xl text-white font-bold shadow-lg transition-transform active:scale-95 ${type === 'danger' ? 'bg-red-500 shadow-red-500/30 hover:bg-red-600' : 'bg-amber-500 shadow-amber-500/30 hover:bg-amber-600'}`}>
+                                确定
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const LoginScreen = ({ config, configs, onLogin, onSwitchDB, onEditDB }) => {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setError('');
+                if (!config) {
+                    setError('请先选择数据库环境');
+                    return;
+                }
+                setLoading(true);
+                try {
+                    const user = await LCService.login(config, username, password);
+                    onLogin(user);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden">
+                    {/* Background decorations */}
+                    <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-sky-200/20 blur-3xl"></div>
+                        <div className="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-purple-200/20 blur-3xl"></div>
+                    </div>
+
+                    <div className="w-full max-w-sm bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 animate-slide-up relative z-10">
+                        <div className="text-center mb-8">
+                            <div className="w-16 h-16 bg-gradient-to-br from-sky-400 to-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-sky-500/30 mb-4">
+                                <Shield className="text-white" size={32}/>
+                            </div>
+                            <h1 className="text-2xl font-black text-slate-800 tracking-tight">管理后台登录</h1>
+                            <p className="text-slate-400 text-sm font-medium mt-1">SQL-DMsystem Security</p>
+                        </div>
+
+                        {/* Config Selector */}
+                        <div 
+                            onClick={onSwitchDB}
+                            className="mb-6 p-3 bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-200 rounded-xl cursor-pointer transition-all group flex items-center justify-between"
+                        >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm text-sky-500 shrink-0">
+                                    <Database size={16}/>
+                                </div>
+                                <div className="min-w-0 text-left">
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">当前数据库</div>
+                                    <div className="text-sm font-bold text-slate-700 truncate group-hover:text-sky-700">
+                                        {config ? config.name : '点击选择数据库'}
+                                    </div>
+                                </div>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-300 group-hover:text-sky-400"/>
+                        </div>
+
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">管理员账号</label>
+                                <div className="relative group">
+                                    <User className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-sky-500 transition-colors" size={18}/>
+                                    <input 
+                                        type="text" 
+                                        value={username}
+                                        onChange={e => setUsername(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
+                                        placeholder="请输入管理员账号"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">登录密码</label>
+                                <div className="relative group">
+                                    <Key className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-sky-500 transition-colors" size={18}/>
+                                    <input 
+                                        type="password" 
+                                        value={password}
+                                        onChange={e => setPassword(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
+                                        placeholder="请输入密码"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-xs font-bold text-red-500 animate-fade-in">
+                                    <AlertCircle size={16} className="shrink-0"/>
+                                    {error}
+                                </div>
+                            )}
+
+                            <button 
+                                type="submit" 
+                                disabled={loading || !config}
+                                className="w-full py-3.5 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 shadow-lg shadow-slate-800/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                            >
+                                {loading ? <RefreshCw className="animate-spin" size={18}/> : <span className="flex items-center gap-2">安全登录 <ArrowRightLeft size={16}/></span>}
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div className="absolute bottom-6 text-center w-full text-[10px] text-slate-400 font-medium">
+                        <Lock size={12} className="inline mr-1"/>
+                        End-to-End Encrypted Session
+                    </div>
+                </div>
+            );
+        };
+
+        const DBConfigPanel = ({ currentConfig, onSwitch, onEdit }) => {
+            const [configs, setConfigs] = useState(() => {
+                const saved = localStorage.getItem('lc_db_configs');
+                let initial = saved ? JSON.parse(saved) : [];
+                if (PRESET_CONFIGS.length > 0) {
+                     const existingIds = new Set(initial.map(c => c.appId));
+                     PRESET_CONFIGS.forEach(p => {
+                         if(!existingIds.has(p.appId)) initial.unshift(p);
+                     });
+                }
+                return initial;
+            });
+
+            const saveConfigs = (newConfigs) => {
+                setConfigs(newConfigs);
+                localStorage.setItem('lc_db_configs', JSON.stringify(newConfigs));
+            };
+
+            const handleAdd = () => {
+                const newCfg = { name: `新环境 ${configs.length + 1}`, appId: '', appKey: '', apiUrl: 'https://域名.com/1.1/classes' };
+                saveConfigs([...configs, newCfg]);
+                onEdit(newCfg, configs.length);
+            };
+
+            const handleDelete = (e, idx) => {
+                e.stopPropagation();
+                if(!confirm('确认删除此配置？')) return;
+                const newConfigs = configs.filter((_, i) => i !== idx);
+                saveConfigs(newConfigs);
+            }
+
+            const isPreset = (cfg) => PRESET_CONFIGS.some(p => p.appId === cfg.appId);
+
+            return (
+                <div className="space-y-3">
+                    <p className="text-xs text-slate-500 mb-2">选择数据库环境：</p>
+                    {configs.map((cfg, idx) => {
+                        const isActive = currentConfig?.appId === cfg.appId;
+                        return (
+                            <div key={idx} onClick={() => onSwitch(cfg)} 
+                                className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between group relative overflow-hidden ${
+                                    isActive ? 'bg-sky-50 border-sky-500 ring-1 ring-sky-500 shadow-sm' : 'bg-white border-slate-200 hover:border-sky-300 hover:shadow-md'
+                                }`}
+                            >
+                                {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-sky-500"></div>}
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white font-bold text-xs ${isActive ? 'bg-sky-500' : 'bg-slate-300'}`}>
+                                        <Database size={14}/>
+                                    </div>
+                                    <div className="truncate">
+                                        <div className={`font-bold text-sm ${isActive ? 'text-sky-700' : 'text-slate-700'}`}>{cfg.name || '未命名配置'}</div>
+                                        <div className="text-[10px] text-slate-400 truncate font-mono mt-0.5">{cfg.appId ? `ID: ...${cfg.appId.slice(-6)}` : '未配置'}</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <button onClick={(e) => { e.stopPropagation(); onEdit(cfg, idx); }} className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-100 rounded-lg transition-colors">
+                                        <Edit size={16}/>
+                                    </button>
+                                    {!isPreset(cfg) && (
+                                        <button onClick={(e) => handleDelete(e, idx)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors">
+                                            <Trash2 size={16}/>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    <button onClick={handleAdd} className="w-full py-3 rounded-xl border border-dashed border-slate-300 text-slate-400 font-bold hover:bg-slate-50 hover:border-slate-400 hover:text-slate-600 transition-all flex items-center justify-center gap-2 text-xs">
+                        <Plus size={16}/> 添加新环境
+                    </button>
+                </div>
+            );
+        };
+
+        const ConfigEditForm = ({ initialConfig, onSave }) => {
+            const [form, setForm] = useState(initialConfig);
+            const [checking, setChecking] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setChecking(true);
+                try {
+                    let cleanUrl = form.apiUrl.trim();
+                    if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
+                    if (!cleanUrl.endsWith('/classes')) {
+                        if (!cleanUrl.includes('/1.1/')) cleanUrl += '/1.1/classes';
+                    }
+                    const newConfig = { ...form, apiUrl: cleanUrl };
+                    await LCService.checkConfig(newConfig);
+                    onSave(newConfig);
+                } catch (err) {
+                    alert("连接失败: " + err.message);
+                } finally {
+                    setChecking(false);
+                }
+            };
+
+            return (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">配置名称</label><input required value={form.name} onChange={e=>setForm({...form, name: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"/></div>
+                    <div><label className="text-xs font-bold text-slate-500 mb-1 block">API URL</label><input required value={form.apiUrl} onChange={e=>setForm({...form, apiUrl: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"/></div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><label className="text-xs font-bold text-slate-500 mb-1 block">App ID</label><input required value={form.appId} onChange={e=>setForm({...form, appId: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"/></div>
+                        <div><label className="text-xs font-bold text-slate-500 mb-1 block">App Key</label><input required type="password" value={form.appKey} onChange={e=>setForm({...form, appKey: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"/></div>
+                    </div>
+                    <button type="submit" disabled={checking} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 transition-all flex justify-center items-center gap-2 shadow-lg shadow-slate-800/20">
+                        {checking ? <RefreshCw className="animate-spin" size={16}/> : <Save size={16}/>} 保存并连接
+                    </button>
+                </form>
+            );
+        };
+
+        const ImportExcel = ({ onImport, onClose }) => {
+            const [file, setFile] = useState(null);
+            const [preview, setPreview] = useState([]);
+            const [importing, setImporting] = useState(false);
+
+            const handleFile = (e) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                setFile(f);
+                
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const bstr = evt.target.result;
+                    const wb = XLSX.read(bstr, { type: 'binary' });
+                    const wsname = wb.SheetNames[0];
+                    const ws = wb.Sheets[wsname];
+                    const data = XLSX.utils.sheet_to_json(ws);
+                    const mapped = data.map(row => ({
+                        username: String(row['账号'] || row['用户名'] || row['username'] || Object.values(row)[0] || ''),
+                        password: String(row['密码'] || row['password'] || Object.values(row)[1] || '123456'),
+                        role: row['角色'] === '管理员' ? 'admin' : (row['角色'] === '访客' ? 'guest' : 'inspector')
+                    })).filter(u => u.username);
+                    setPreview(mapped);
+                };
+                reader.readAsBinaryString(f);
+            };
+
+            const downloadTemplate = () => {
+                const wb = XLSX.utils.book_new();
+                const ws_data = [
+                    ["账号", "密码", "角色"],
+                    ["2501班检查", "123456", "检查人"],
+                    ["admin", "admin888", "管理员"],
+                    ["guest", "123456", "访客"]
+                ];
+                const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                ws['!cols'] = [{wch: 20}, {wch: 15}, {wch: 10}];
+                XLSX.utils.book_append_sheet(wb, ws, "账号导入模板");
+                XLSX.writeFile(wb, "检查人账号导入模板.xlsx");
+            };
+
+            const doImport = async () => {
+                if (preview.length === 0) return;
+                setImporting(true);
+                await onImport(preview);
+                setImporting(false);
+                onClose();
+            };
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center bg-sky-50 p-3 rounded-lg border border-sky-100">
+                        <div className="text-xs text-sky-700">请使用标准模板导入数据</div>
+                        <button onClick={downloadTemplate} className="text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm">
+                            <Download size={14}/> 下载模板
+                        </button>
+                    </div>
+
+                    <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors relative group">
+                        <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFile} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                        <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3 group-hover:scale-110 transition-transform">
+                            <FileSpreadsheet className="text-emerald-500" size={32}/>
+                        </div>
+                        <p className="text-sm font-bold text-slate-700">点击上传 Excel / CSV 文件</p>
+                        <p className="text-xs text-slate-400 mt-1">支持拖拽上传</p>
+                    </div>
+                    {preview.length > 0 && (
+                        <div className="bg-slate-50 p-3 rounded-xl max-h-48 overflow-y-auto custom-scrollbar border border-slate-200">
+                            <div className="flex justify-between items-center mb-2">
+                                <p className="text-xs font-bold text-slate-500">预览数据 ({preview.length} 条)</p>
+                            </div>
+                            <div className="space-y-1">
+                                {preview.map((u, i) => (
+                                    <div key={i} className="flex justify-between text-xs border-b border-slate-200 pb-1 last:border-0">
+                                        <span className="font-medium text-slate-700">{u.username}</span>
+                                        <span className={`px-1.5 rounded text-[10px] ${u.role==='admin'?'bg-purple-100 text-purple-600':'bg-slate-200 text-slate-500'}`}>{u.role}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    <button onClick={doImport} disabled={!preview.length || importing} className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 shadow-emerald-500/30 shadow-lg disabled:opacity-50 disabled:shadow-none transition-all flex justify-center items-center gap-2">
+                        {importing ? <RefreshCw className="animate-spin" size={16}/> : <Upload size={16}/>} 确认导入数据
+                    </button>
+                </div>
+            );
+        };
+
+        const EditUserForm = ({ user, onSave, onCancel }) => {
+            const [form, setForm] = useState(user);
+            const [submitting, setSubmitting] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setSubmitting(true);
+                await onSave(user.objectId, { password: form.password, role: form.role });
+                setSubmitting(false);
+            };
+
+            return (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                     <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">账号 (唯一标识)</label>
+                        <input disabled value={form.username} className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 cursor-not-allowed"/>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">重置密码</label>
+                        <div className="relative">
+                            <Key className="absolute left-3 top-3 text-slate-400" size={16}/>
+                            <input required value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"/>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">权限角色</label>
+                        <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all">
+                            <option value="inspector">检查人 (只能录入数据)</option>
+                            <option value="admin">管理员 (完全权限)</option>
+                            <option value="guest">访客 (只读权限)</option>
+                        </select>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                         <button type="button" onClick={onCancel} className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">取消</button>
+                         <button type="submit" disabled={submitting} className="flex-1 py-3 bg-sky-600 text-white rounded-xl font-bold text-sm hover:bg-sky-700 shadow-lg shadow-sky-500/30 transition-all flex items-center justify-center gap-2">
+                            {submitting && <RefreshCw className="animate-spin" size={16}/>} 保存修改
+                         </button>
+                    </div>
+                </form>
+            );
+        };
+
+        const App = () => {
+            const [config, setConfig] = useState(null);
+            // Auth State
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [currentUser, setCurrentUser] = useState(null);
+
+            const [users, setUsers] = useState([]);
+            const [selectedIds, setSelectedIds] = useState(new Set());
+            const [loading, setLoading] = useState(false);
+            const [searchTerm, setSearchTerm] = useState('');
+            
+            // Modal States
+            const [showDBPanel, setShowDBPanel] = useState(false); 
+            const [editingConfig, setEditingConfig] = useState(null);
+            const [showAddUser, setShowAddUser] = useState(false);
+            const [showImport, setShowImport] = useState(false);
+            const [editingUser, setEditingUser] = useState(null);
+            const [toast, setToast] = useState(null);
+            
+            // Confirm Modal State
+            const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' });
+
+            useEffect(() => {
+                const savedConfigs = JSON.parse(localStorage.getItem('lc_db_configs') || '[]');
+                const mergedConfigs = [...savedConfigs];
+                PRESET_CONFIGS.forEach(preset => {
+                    if (!mergedConfigs.some(c => c.appId === preset.appId)) {
+                        mergedConfigs.unshift(preset);
+                    }
+                });
+                
+                if (mergedConfigs.length > savedConfigs.length) {
+                    localStorage.setItem('lc_db_configs', JSON.stringify(mergedConfigs));
+                }
+
+                const lastAppId = localStorage.getItem('lc_last_app_id');
+                let activeConfig = null;
+
+                if (lastAppId) {
+                    activeConfig = mergedConfigs.find(c => c.appId === lastAppId);
+                }
+                if (!activeConfig && mergedConfigs.length > 0) {
+                    activeConfig = mergedConfigs[0];
+                }
+
+                if (activeConfig && activeConfig.appId) {
+                    setConfig(activeConfig);
+                    // 安全修改：初始化时不自动加载数据，必须等登录
+                } else {
+                    setShowDBPanel(true);
+                }
+            }, []);
+
+            const showToast = (msg, type='success') => {
+                setToast({msg, type});
+                setTimeout(() => setToast(null), 3000);
+            };
+
+            const showConfirm = (title, message, onConfirm, type='danger') => {
+                setConfirmState({ isOpen: true, title, message, onConfirm: () => { setConfirmState(p => ({...p, isOpen: false})); onConfirm(); }, type });
+            };
+
+            const loadUsers = async (cfg) => {
+                setLoading(true);
+                try {
+                    const list = await LCService.getUsers(cfg);
+                    setUsers(list);
+                    setSelectedIds(new Set());
+                } catch (e) {
+                    showToast("数据获取失败: " + e.message, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // Filter Users
+            const filteredUsers = useMemo(() => {
+                const lower = searchTerm.toLowerCase();
+                return users.filter(u => 
+                    (u.username && u.username.toLowerCase().includes(lower)) || 
+                    (u.role === 'admin' ? '管理员' : u.role === 'guest' ? '访客' : '检查人').includes(lower)
+                );
+            }, [users, searchTerm]);
+
+            const stats = useMemo(() => ({
+                total: users.length,
+                inspector: users.filter(u => u.role === 'inspector').length,
+                admin: users.filter(u => u.role === 'admin').length,
+                guest: users.filter(u => u.role === 'guest').length
+            }), [users]);
+
+            const toggleSelect = (id) => {
+                const newSet = new Set(selectedIds);
+                if (newSet.has(id)) newSet.delete(id);
+                else newSet.add(id);
+                setSelectedIds(newSet);
+            };
+
+            const toggleSelectAll = () => {
+                if (selectedIds.size === filteredUsers.length) setSelectedIds(new Set());
+                else setSelectedIds(new Set(filteredUsers.map(u => u.objectId)));
+            };
+
+            const handleSwitchConfig = (newCfg) => {
+                setConfig(newCfg);
+                localStorage.setItem('lc_last_app_id', newCfg.appId);
+                setShowDBPanel(false);
+                
+                // 切换数据库后，强制退出登录状态，因为不同数据库的账号不同
+                setIsLoggedIn(false);
+                setUsers([]);
+                showToast(`已切换至: ${newCfg.name}，请重新登录`);
+            };
+
+            const handleSaveConfig = (newCfg) => {
+                let saved = JSON.parse(localStorage.getItem('lc_db_configs') || '[]');
+                if (editingConfig.index !== undefined) {
+                    saved[editingConfig.index] = newCfg;
+                } else {
+                    saved.push(newCfg);
+                }
+                localStorage.setItem('lc_db_configs', JSON.stringify(saved));
+                setConfig(newCfg);
+                localStorage.setItem('lc_last_app_id', newCfg.appId);
+                
+                // 同样，保存配置后需要重登
+                setEditingConfig(null);
+                setShowDBPanel(false);
+                setIsLoggedIn(false);
+                setUsers([]);
+                showToast("配置已更新，请重新登录");
+            };
+
+            // Login Logic
+            const handleLoginSuccess = (user) => {
+                setCurrentUser(user);
+                setIsLoggedIn(true);
+                showToast(`欢迎回来，${user.username}`);
+                loadUsers(config); // 登录成功后才加载数据
+            };
+
+            const handleLogout = () => {
+                showConfirm('退出登录', '确定要退出管理后台吗？', () => {
+                    setIsLoggedIn(false);
+                    setCurrentUser(null);
+                    setUsers([]);
+                    showToast('已安全退出');
+                }, 'warning');
+            };
+
+            // CRUD Handlers
+            const handleBatchDelete = async () => {
+                showConfirm('批量删除警告', `确定要删除选中的 ${selectedIds.size} 个账号吗？此操作不可恢复！`, async () => {
+                    try {
+                        await LCService.batchDeleteUsers(config, Array.from(selectedIds));
+                        setUsers(users.filter(u => !selectedIds.has(u.objectId)));
+                        setSelectedIds(new Set());
+                        showToast("批量删除成功");
+                    } catch(e) { showToast("部分删除失败", 'error'); }
+                });
+            };
+
+            const handleSingleDelete = (u) => {
+                 showConfirm('删除确认', `确定要删除账号【${u.username}】吗？`, async () => {
+                     try {
+                        await LCService.deleteUser(config, u.objectId);
+                        setUsers(users.filter(x => x.objectId !== u.objectId)); 
+                        showToast('已删除');
+                     } catch(e) { showToast("删除失败", 'error'); }
+                 });
+            };
+
+            const handleImport = async (data) => {
+                const res = await LCService.batchAddUsers(config, data);
+                showToast(`导入完成: 成功 ${res.success}, 失败 ${res.failed}`);
+                loadUsers(config);
+            };
+
+            const handleEditUser = async (id, updates) => {
+                try {
+                    await LCService.updateUser(config, id, updates);
+                    setUsers(users.map(u => u.objectId === id ? {...u, ...updates} : u));
+                    setEditingUser(null);
+                    showToast("修改成功");
+                } catch(e) { showToast("修改失败", 'error'); }
+            };
+
+            const handleAddUserSubmit = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const newUser = {
+                    username: formData.get('username'),
+                    password: formData.get('password'),
+                    role: formData.get('role')
+                };
+                if (!newUser.username || !newUser.password) {
+                    showToast("请填写完整信息", 'error');
+                    return;
+                }
+                try {
+                    const res = await LCService.addUser(config, newUser);
+                    const completeUser = { ...newUser, ...res, objectId: res.objectId };
+                    setUsers([completeUser, ...users]);
+                    setShowAddUser(false);
+                    showToast("创建成功");
+                } catch(err) { showToast("创建失败", 'error'); }
+            };
+
+            const copyToClipboard = (text) => {
+                navigator.clipboard.writeText(text).then(() => showToast("账号信息已复制"));
+            };
+
+            // Render Logic
+            if (!isLoggedIn) {
+                return (
+                    <>
+                        <LoginScreen 
+                            config={config} 
+                            onLogin={handleLoginSuccess}
+                            onSwitchDB={() => setShowDBPanel(true)}
+                        />
+                         {showDBPanel && (
+                            <Modal title="切换数据库环境" onClose={() => setShowDBPanel(false)}>
+                                {editingConfig ? (
+                                    <ConfigEditForm 
+                                        initialConfig={editingConfig.config} 
+                                        onSave={handleSaveConfig} 
+                                    />
+                                ) : (
+                                    <DBConfigPanel 
+                                        currentConfig={config} 
+                                        onSwitch={handleSwitchConfig} 
+                                        onEdit={(cfg, idx) => setEditingConfig({config: cfg, index: idx})}
+                                    />
+                                )}
+                            </Modal>
+                        )}
+                         {/* Toast in login screen */}
+                        {toast && (
+                            <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl font-bold text-sm flex items-center gap-3 animate-enter z-[70] ${toast.type === 'error' ? 'bg-red-500/90 text-white shadow-red-500/30' : 'bg-slate-800/90 text-white shadow-slate-800/30'}`}>
+                                {toast.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
+                                {toast.msg}
+                            </div>
+                        )}
+                    </>
+                );
+            }
+
+            return (
+                <div className="min-h-screen pb-32 bg-slate-50">
+                    {/* Header */}
+                    <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 shadow-sm">
+                        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+                            {/* Left: DB Info */}
+                            <div className="flex items-center gap-3">
+                                <div className="bg-sky-500 p-2.5 rounded-xl text-white shadow-lg shadow-sky-500/30">
+                                    <Shield size={20} fill="currentColor" className="opacity-90"/>
+                                </div>
+                                <div className="hidden sm:block">
+                                    <div className="flex items-center gap-2">
+                                        <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">管理后台</h1>
+                                        <div className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
+                                            <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
+                                            已安全连接
+                                        </div>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-bold mt-0.5 truncate max-w-[150px]">
+                                        {config?.name}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Center: Search Bar */}
+                            <div className="flex-1 max-w-md hidden md:block">
+                                <div className="relative group">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" size={18}/>
+                                    <input 
+                                        type="text" 
+                                        placeholder="搜索账号 / 角色..." 
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border-transparent focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 rounded-xl text-sm transition-all outline-none font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Right: Actions */}
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setShowImport(true)} className="hidden md:flex bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl text-sm font-bold border border-emerald-100 hover:bg-emerald-100 hover:shadow-md transition-all items-center gap-2">
+                                    <FileSpreadsheet size={18}/> 导入
+                                </button>
+                                <button onClick={() => setShowAddUser(true)} className="bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-800/20 hover:bg-slate-900 active:scale-95 transition-all flex items-center gap-2">
+                                    <Plus size={18}/> <span className="hidden sm:inline">新建</span>
+                                </button>
+                                <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                                <button onClick={handleLogout} className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="退出登录">
+                                    <LogOut size={20}/>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Stats Bar */}
+                    <div className="max-w-7xl mx-auto px-4 mt-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+                                <div className="p-2.5 bg-slate-100 rounded-xl text-slate-600"><Users size={20}/></div>
+                                <div><div className="text-xs text-slate-400 font-bold uppercase">总人数</div><div className="text-xl font-black text-slate-700">{stats.total}</div></div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+                                <div className="p-2.5 bg-sky-50 rounded-xl text-sky-600"><UserCheck size={20}/></div>
+                                <div><div className="text-xs text-slate-400 font-bold uppercase">检查人</div><div className="text-xl font-black text-sky-600">{stats.inspector}</div></div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+                                <div className="p-2.5 bg-purple-50 rounded-xl text-purple-600"><Shield size={20}/></div>
+                                <div><div className="text-xs text-slate-400 font-bold uppercase">管理员</div><div className="text-xl font-black text-purple-600">{stats.admin}</div></div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+                                <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600"><UserCog size={20}/></div>
+                                <div><div className="text-xs text-slate-400 font-bold uppercase">访客</div><div className="text-xl font-black text-amber-600">{stats.guest}</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Search Bar Mobile */}
+                    <div className="md:hidden px-4 mt-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+                            <input 
+                                type="text" 
+                                placeholder="搜索账号 / 角色..." 
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm shadow-sm outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <main className="max-w-7xl mx-auto px-4 pt-6">
+                        {loading ? (
+                            <div className="text-center py-32 text-slate-400 flex flex-col items-center">
+                                <RefreshCw className="animate-spin mb-4 text-sky-500" size={32}/> 
+                                <span className="font-bold text-slate-500">正在同步数据...</span>
+                            </div>
+                        ) : users.length === 0 ? (
+                            <div className="text-center py-32 text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200 mx-auto max-w-lg">
+                                <Database size={48} className="mb-4 opacity-20 mx-auto text-slate-500"/>
+                                <p className="font-bold text-lg text-slate-600">数据库空空如也</p>
+                                <p className="text-sm mt-1 mb-6 text-slate-400">当前环境未找到任何账号数据</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex justify-between items-center mb-4 px-1">
+                                    <div className="text-sm text-slate-500 font-bold flex items-center gap-2">
+                                        <button onClick={toggleSelectAll} className="flex items-center gap-2 hover:text-sky-600 transition-colors bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                            {selectedIds.size === filteredUsers.length && filteredUsers.length > 0 ? <CheckSquare size={18} className="text-sky-500"/> : <Square size={18}/>}
+                                            全选本页 ({filteredUsers.length})
+                                        </button>
+                                    </div>
+                                    {selectedIds.size > 0 && (
+                                        <div className="flex gap-2 animate-enter">
+                                            <button onClick={handleBatchDelete} className="px-4 py-1.5 bg-red-500 text-white rounded-lg text-xs font-bold shadow-red-500/30 shadow-md hover:bg-red-600 flex items-center gap-1 transition-all">
+                                                <Trash2 size={14}/> 删除选中 ({selectedIds.size})
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                    {filteredUsers.map(u => (
+                                        <div key={u.objectId} className={`bg-white p-5 rounded-2xl border transition-all relative group hover:-translate-y-1 duration-300 ${selectedIds.has(u.objectId) ? 'border-sky-500 shadow-sky-100 ring-2 ring-sky-500/20' : 'border-slate-100 shadow-card hover:shadow-xl'}`}>
+                                            <div className="absolute top-4 right-4 z-10">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="custom-checkbox cursor-pointer transform scale-110"
+                                                    checked={selectedIds.has(u.objectId)}
+                                                    onChange={() => toggleSelect(u.objectId)}
+                                                />
+                                            </div>
+                                            
+                                            <div onClick={() => toggleSelect(u.objectId)} className="cursor-pointer">
+                                                <div className="flex items-center gap-3 mb-4 pr-6">
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg text-xl shrink-0 ${u.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : (u.role === 'guest' ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-sky-400 to-blue-600')}`}>
+                                                        {u.username.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h3 className="font-bold text-slate-800 text-base truncate" title={u.username}>{u.username}</h3>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold inline-block mt-1 ${
+                                                            u.role === 'admin' ? 'bg-purple-50 text-purple-600' : 
+                                                            (u.role === 'guest' ? 'bg-amber-50 text-amber-600' : 'bg-sky-50 text-sky-600')
+                                                        }`}>
+                                                            {u.role === 'admin' ? '管理员' : (u.role === 'guest' ? '访客' : '检查人')}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="bg-slate-50/50 rounded-xl p-3 flex items-center justify-between border border-slate-100 mb-4 group-hover:bg-slate-50 transition-colors">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <Key size={14} className="text-slate-400 shrink-0"/>
+                                                        <span className="font-mono text-sm text-slate-600 truncate font-bold">{u.password}</span>
+                                                    </div>
+                                                    <button onClick={(e) => { e.stopPropagation(); copyToClipboard(`账号:${u.username} 密码:${u.password}`); }} className="text-xs font-bold text-sky-600 hover:bg-sky-100 px-2 py-1 rounded transition-colors flex items-center gap-1">
+                                                        <Copy size={12}/> 复制
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 pt-3 border-t border-slate-50">
+                                                <button onClick={(e) => { e.stopPropagation(); setEditingUser(u); }} className="flex-1 py-2 text-xs font-bold text-slate-500 bg-slate-50 hover:bg-sky-50 rounded-xl hover:text-sky-600 transition-colors flex items-center justify-center gap-1.5">
+                                                    <Edit size={14}/> 编辑
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleSingleDelete(u); }} className="flex-1 py-2 text-xs font-bold text-slate-500 bg-slate-50 hover:bg-red-50 rounded-xl hover:text-red-600 transition-colors flex items-center justify-center gap-1.5">
+                                                    <Trash2 size={14}/> 删除
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {filteredUsers.length === 0 && (
+                                        <div className="col-span-full py-12 text-center text-slate-400">
+                                            未找到匹配的账号
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </main>
+
+                    {/* Floating FAB for mobile */}
+                    <button onClick={() => setShowImport(true)} className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/30 flex items-center justify-center z-30 transition-transform active:scale-90">
+                        <FileSpreadsheet size={24}/>
+                    </button>
+
+                    {/* Modals */}
+                    {showImport && (
+                        <Modal title="批量导入账号" onClose={() => setShowImport(false)}>
+                            <ImportExcel onImport={handleImport} onClose={() => setShowImport(false)}/>
+                        </Modal>
+                    )}
+
+                    {showAddUser && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowAddUser(false)}>
+                            <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl animate-zoom-in" onClick={e=>e.stopPropagation()}>
+                                <h3 className="font-bold text-xl text-slate-800 mb-6 flex items-center gap-2"><Plus className="bg-slate-100 p-1 rounded-lg box-content" size={20}/> 新建账号</h3>
+                                <form onSubmit={handleAddUserSubmit} className="space-y-5">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1.5 block">账号名称</label>
+                                        <input name="username" required placeholder="例如：25级检查组01" className="w-full p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 outline-none transition-all"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1.5 block">登录密码</label>
+                                        <input name="password" required placeholder="建议设置复杂一点" className="w-full p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 outline-none transition-all"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1.5 block">权限角色</label>
+                                        <select name="role" className="w-full p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:bg-white focus:border-sky-500 outline-none">
+                                            <option value="inspector">检查人 (只能录入数据)</option>
+                                            <option value="admin">管理员 (完全权限)</option>
+                                            <option value="guest">访客 (只读权限)</option>
+                                        </select>
+                                    </div>
+                                    <button className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 shadow-lg shadow-slate-800/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                                        <Save size={18}/> 立即创建
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {editingUser && (
+                        <Modal title="编辑账号信息" onClose={() => setEditingUser(null)}>
+                            <EditUserForm 
+                                user={editingUser} 
+                                onSave={handleEditUser} 
+                                onCancel={() => setEditingUser(null)}
+                            />
+                        </Modal>
+                    )}
+
+                    {/* Custom Confirm Modal */}
+                    <ConfirmModal 
+                        isOpen={confirmState.isOpen}
+                        title={confirmState.title}
+                        message={confirmState.message}
+                        onConfirm={confirmState.onConfirm}
+                        onCancel={() => setConfirmState(p => ({...p, isOpen: false}))}
+                        type={confirmState.type}
+                    />
+
+                    {/* Toast */}
+                    {toast && (
+                        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl font-bold text-sm flex items-center gap-3 animate-enter z-[70] ${toast.type === 'error' ? 'bg-red-500/90 text-white shadow-red-500/30' : 'bg-slate-800/90 text-white shadow-slate-800/30'}`}>
+                            {toast.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
+                            {toast.msg}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
