@@ -678,11 +678,31 @@
                 setConfirmState({ isOpen: true, title, message, onConfirm: () => { setConfirmState(p => ({...p, isOpen: false})); onConfirm(); }, type });
             };
 
+            // 权限等级排序函数
+            const getRolePriority = (role) => {
+                const priorities = {
+                    'superadmin': 1,
+                    'admin': 2,
+                    'inspector': 3,
+                    'guest': 4
+                };
+                return priorities[role] || 999;
+            };
+
             const loadUsers = async (cfg) => {
                 setLoading(true);
                 try {
                     const list = await LCService.getUsers(cfg);
-                    setUsers(list);
+                    // 按权限等级排序：superadmin > admin > inspector > guest
+                    const sortedList = list.sort((a, b) => {
+                        const priorityDiff = getRolePriority(a.role) - getRolePriority(b.role);
+                        // 如果权限相同，按用户名排序
+                        if (priorityDiff === 0) {
+                            return (a.username || '').localeCompare(b.username || '');
+                        }
+                        return priorityDiff;
+                    });
+                    setUsers(sortedList);
                     setSelectedIds(new Set());
                 } catch (e) {
                     showToast("数据获取失败: " + e.message, 'error');
@@ -694,10 +714,18 @@
             // Filter Users
             const filteredUsers = useMemo(() => {
                 const lower = searchTerm.toLowerCase();
-                return users.filter(u => 
+                const filtered = users.filter(u => 
                     (u.username && u.username.toLowerCase().includes(lower)) || 
                     (u.role === 'superadmin' ? '超级管理员' : u.role === 'admin' ? '管理员' : u.role === 'guest' ? '访客' : '检查人').includes(lower)
                 );
+                // 保持权限排序
+                return filtered.sort((a, b) => {
+                    const priorityDiff = getRolePriority(a.role) - getRolePriority(b.role);
+                    if (priorityDiff === 0) {
+                        return (a.username || '').localeCompare(b.username || '');
+                    }
+                    return priorityDiff;
+                });
             }, [users, searchTerm]);
 
             const stats = useMemo(() => ({
@@ -1031,13 +1059,24 @@
                                                 </div>
                                                 
                                                 <div className="bg-slate-50/50 rounded-xl p-3 flex items-center justify-between border border-slate-100 mb-4 group-hover:bg-slate-50 transition-colors">
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <Key size={14} className="text-slate-400 shrink-0"/>
-                                                        <span className="font-mono text-sm text-slate-600 truncate font-bold">{u.password}</span>
-                                                    </div>
-                                                    <button onClick={(e) => { e.stopPropagation(); copyToClipboard(`账号:${u.username} 密码:${u.password}`); }} className="text-xs font-bold text-sky-600 hover:bg-sky-100 px-2 py-1 rounded transition-colors flex items-center gap-1">
-                                                        <Copy size={12}/> 复制
-                                                    </button>
+                                                    {/* 超级管理员密码保护：只有superadmin可以看到其他superadmin的密码 */}
+                                                    {u.role === 'superadmin' && currentUser?.role !== 'superadmin' ? (
+                                                        <div className="flex items-center gap-2 flex-1">
+                                                            <Key size={14} className="text-slate-400 shrink-0"/>
+                                                            <span className="font-mono text-sm text-slate-400 font-bold">********</span>
+                                                            <span className="text-[10px] text-slate-400 ml-auto">权限不足</span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                <Key size={14} className="text-slate-400 shrink-0"/>
+                                                                <span className="font-mono text-sm text-slate-600 truncate font-bold">{u.password}</span>
+                                                            </div>
+                                                            <button onClick={(e) => { e.stopPropagation(); copyToClipboard(`账号:${u.username} 密码:${u.password}`); }} className="text-xs font-bold text-sky-600 hover:bg-sky-100 px-2 py-1 rounded transition-colors flex items-center gap-1">
+                                                                <Copy size={12}/> 复制
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
 
