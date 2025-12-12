@@ -82,26 +82,44 @@
         } from 'lucide-react';
 
         // --- 预设配置区 ---
-        const PRESET_CONFIGS = [
+        // Base64 编码
+        const ENCODED_CONFIGS = [
             {
-                name: "智能制造学院-早操系统账号密码数据库",
-                appId: "E7BcO1vNtlBAM0zKDXQLrKPr-gzGzoHsz",
-                appKey: "3QUGql9X3xbs5yTDg657DeUd",
-                apiUrl: "https://e7bco1vn.lc-cn-n1-shared.com/1.1/classes"
+                name: "5pm66IO95Yi26YCg5a2m6ZmiLeaXqeaTjeezu+e7n+i0puWPt+WvhueggeaVsOaNruW6kw==",
+                appId: "RTdCY08xdk50bEJBTTB6S0RYUUxyS1ByLWd6R3pvSHN6",
+                appKey: "M1FVR3FsOVgzeGJzNXlURGc2NTdEZVVk",
+                apiUrl: "aHR0cHM6Ly9lN2JjbzF2bi5sYy1jbi1uMS1zaGFyZWQuY29tLzEuMS9jbGFzc2Vz"
             },
             {
-                name: "长数科-早操系统账号密码数据库",
-                appId: "wGhLHtQZIcgSgdGWCxbXvOGv-gzGzoHsz",
-                appKey: "3Jp9Z9Hiw39NzdQURBRnm9xT",
-                apiUrl: "https://wghlhtqz.lc-cn-n1-shared.com/1.1/classes"
+                name: "6ZW/5pWw56eRLeaXqeaTjeezu+e7n+i0puWPt+WvhueggeaVsOaNruW6kw==",
+                appId: "d0doTEh0UVpJY2dTZ2RHV0N4Ylh2T0d2LWd6R3pvSHN6",
+                appKey: "M0pwOVo5SGl3MzlOemRRVVJCUm5tOXhU",
+                apiUrl: "aHR0cHM6Ly93Z2hsaHRxei5sYy1jbi1uMS1zaGFyZWQuY29tLzEuMS9jbGFzc2Vz"
             },
             {
-                name: "长数科-查寝系统账号密码数据库",
-                appId: "lHeu5bwNCGW09E4HuF2cMkYa-gzGzoHsz",
-                appKey: "lAePnkqMmVSuBuAN00YAtVLp",
-                apiUrl: "https://lheu5bwn.lc-cn-n1-shared.com/1.1/classes"
+                name: "6ZW/5pWw56eRLeafpeWvneezu+e7n+i0puWPt+WvhueggeaVsOaNruW6kw==",
+                appId: "bEhldTVid05DR1cwOUU0SHVGMmNNa1lhLWd6R3pvSHN6",
+                appKey: "bEFlUG5rcU1tVlN1QnVBTjAwWUF0Vkxw",
+                apiUrl: "aHR0cHM6Ly9saGV1NWJ3bi5sYy1jbi1uMS1zaGFyZWQuY29tLzEuMS9jbGFzc2Vz"
             }
         ];
+
+        // 解码辅助函数
+        const _decode = (str) => {
+            try {
+                return decodeURIComponent(escape(window.atob(str)));
+            } catch (e) {
+                console.error("Config decode failed", e);
+                return str;
+            }
+        };
+
+        const PRESET_CONFIGS = ENCODED_CONFIGS.map(c => ({
+            name: _decode(c.name),
+            appId: _decode(c.appId),
+            appKey: _decode(c.appKey),
+            apiUrl: _decode(c.apiUrl)
+        }));
 
         // --- API Service ---
         const LCService = {
