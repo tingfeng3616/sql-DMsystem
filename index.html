@@ -6,7 +6,19 @@
     <title>SQL-DMsystem管理后台</title>
     <link rel="icon" href="./libs/alexico.png" type="image/png">
     
-    <!-- Tailwind CSS -->
+    <!-- DNS预连接优化 -->
+    <link rel="dns-prefetch" href="https://esm.sh">
+    <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
+    <link rel="dns-prefetch" href="https://fonts.loli.net">
+    <link rel="preconnect" href="https://esm.sh" crossorigin>
+    <link rel="preconnect" href="https://cdn.sheetjs.com" crossorigin>
+    
+    <!-- 关键资源预加载 -->
+    <link rel="preload" href="./libs/tailwind.js" as="script">
+    <link rel="preload" href="./libs/babel.min.js" as="script">
+    <link rel="preload" href="https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" as="style">
+    
+    <!-- Tailwind CSS - 关键CSS框架 -->
     <script src="./libs/tailwind.js"></script>
     <script>
         tailwind.config = {
@@ -47,14 +59,18 @@
     }
     </script>
     <script src="./libs/babel.min.js"></script>
-    <!-- SheetJS for Excel Import -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- SheetJS for Excel Import - 延迟加载，仅在需要时使用 -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" defer></script>
 
     <style>
         /* 使用国内镜像源 fonts.loli.net 替代 fonts.googleapis.com */
+        /* 字体异步加载，使用系统字体作为fallback */
         @import url('https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
         
-        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; }
+        body { 
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; 
+            background-color: #f8fafc; 
+        }
         .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -66,9 +82,51 @@
         .custom-checkbox::before { content: ""; width: 0.65em; height: 0.65em; transform: scale(0); transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em white; transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); }
         .custom-checkbox:checked { background-color: #0ea5e9; border-color: #0ea5e9; }
         .custom-checkbox:checked::before { transform: scale(1); }
+        
+        /* 加载进度指示器 */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out;
+        }
+        #loading-screen.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .progress-text {
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 16px;
+            text-align: center;
+        }
     </style>
 </head>
 <body class="text-slate-700 selection:bg-sky-100 selection:text-sky-700">
+    <!-- 加载进度屏幕 -->
+    <div id="loading-screen">
+        <div>
+            <div class="loader"></div>
+            <div class="progress-text">加载中...</div>
+        </div>
+    </div>
+    
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
@@ -105,6 +163,10 @@
 
         // --- API Service ---
         const LCService = {
+            // API缓存
+            _cache: new Map(),
+            _cacheTimeout: 30000, // 30秒缓存
+            
             getHeaders(config) {
                 return {
                     "X-LC-Id": config.appId,
@@ -116,7 +178,7 @@
             async checkConfig(config) {
                 try {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
                     const res = await fetch(`${config.apiUrl}/AdminUser?limit=1`, { 
                         headers: this.getHeaders(config),
                         signal: controller.signal
@@ -160,10 +222,31 @@
             },
 
             async getUsers(config) {
-                const res = await fetch(`${config.apiUrl}/AdminUser?order=-createdAt&limit=1000`, { headers: this.getHeaders(config) });
+                // 检查缓存
+                const cacheKey = `users_${config.appId}`;
+                const cached = this._cache.get(cacheKey);
+                if (cached && Date.now() - cached.timestamp < this._cacheTimeout) {
+                    return cached.data;
+                }
+                
+                const res = await fetch(`${config.apiUrl}/AdminUser?order=-createdAt&limit=1000`, { 
+                    headers: this.getHeaders(config),
+                    // 添加缓存控制
+                    cache: 'no-cache'
+                });
                 if (!res.ok) throw new Error("获取用户列表失败");
                 const data = await res.json();
-                return data.results.filter(u => u.username);
+                const users = data.results.filter(u => u.username);
+                
+                // 存储到缓存
+                this._cache.set(cacheKey, { data: users, timestamp: Date.now() });
+                
+                return users;
+            },
+            
+            // 清除缓存
+            clearCache() {
+                this._cache.clear();
             },
 
             async addUser(config, user) {
@@ -173,6 +256,7 @@
                     body: JSON.stringify(user)
                 });
                 if (!res.ok) throw new Error("添加用户失败");
+                this._cache.delete(`users_${config.appId}`); // 清除缓存
                 return await res.json();
             },
 
@@ -183,6 +267,7 @@
                     body: JSON.stringify(updates)
                 });
                 if (!res.ok) throw new Error("更新用户失败");
+                this._cache.delete(`users_${config.appId}`); // 清除缓存
                 return true;
             },
 
@@ -192,12 +277,13 @@
                     headers: this.getHeaders(config)
                 });
                 if (!res.ok) throw new Error("删除用户失败");
+                this._cache.delete(`users_${config.appId}`); // 清除缓存
                 return true;
             },
 
             async batchAddUsers(config, users) {
                 const results = { success: 0, failed: 0 };
-                const batchSize = 5;
+                const batchSize = 10;
                 for (let i = 0; i < users.length; i += batchSize) {
                     const batch = users.slice(i, i + batchSize);
                     await Promise.all(batch.map(u => 
@@ -211,7 +297,7 @@
             
             async batchDeleteUsers(config, ids) {
                 const idArray = Array.from(ids);
-                const batchSize = 5;
+                const batchSize = 10;
                 for (let i = 0; i < idArray.length; i += batchSize) {
                     const batch = idArray.slice(i, i + batchSize);
                     await Promise.all(batch.map(id => this.deleteUser(config, id)));
@@ -222,7 +308,7 @@
 
         // --- Components ---
 
-        const Modal = ({ title, children, onClose, className = "" }) => (
+        const Modal = React.memo(({ title, children, onClose, className = "" }) => (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
                 <div className={`bg-white rounded-2xl shadow-2xl w-full overflow-hidden ring-1 ring-black/5 animate-zoom-in ${className || 'max-w-md'}`} onClick={e => e.stopPropagation()}>
                     <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -234,9 +320,9 @@
                     </div>
                 </div>
             </div>
-        );
+        ));
 
-        const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, type = 'danger' }) => {
+        const ConfirmModal = React.memo(({ isOpen, title, message, onConfirm, onCancel, type = 'danger' }) => {
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={onCancel}>
@@ -255,9 +341,9 @@
                     </div>
                 </div>
             );
-        };
+        });
 
-        const LoginScreen = ({ config, configs, onLogin, onSwitchDB, onEditDB }) => {
+        const LoginScreen = React.memo(({ config, configs, onLogin, onSwitchDB, onEditDB }) => {
             const [username, setUsername] = useState('');
             const [password, setPassword] = useState('');
             const [loading, setLoading] = useState(false);
@@ -370,9 +456,9 @@
                     </div>
                 </div>
             );
-        };
+        });
 
-        const DBConfigPanel = ({ currentConfig, onSwitch, onEdit }) => {
+        const DBConfigPanel = React.memo(({ currentConfig, onSwitch, onEdit }) => {
             const [configs, setConfigs] = useState(() => {
                 const saved = localStorage.getItem('lc_db_configs');
                 let initial = saved ? JSON.parse(saved) : [];
@@ -444,9 +530,9 @@
                     </button>
                 </div>
             );
-        };
+        });
 
-        const ConfigEditForm = ({ initialConfig, onSave }) => {
+        const ConfigEditForm = React.memo(({ initialConfig, onSave }) => {
             const [form, setForm] = useState(initialConfig);
             const [checking, setChecking] = useState(false);
 
@@ -482,9 +568,9 @@
                     </button>
                 </form>
             );
-        };
+        });
 
-        const ImportExcel = ({ onImport, onClose }) => {
+        const ImportExcel = React.memo(({ onImport, onClose }) => {
             const [file, setFile] = useState(null);
             const [preview, setPreview] = useState([]);
             const [importing, setImporting] = useState(false);
@@ -571,9 +657,9 @@
                     </button>
                 </div>
             );
-        };
+        });
 
-        const EditUserForm = ({ user, onSave, onCancel }) => {
+        const EditUserForm = React.memo(({ user, onSave, onCancel }) => {
             const [form, setForm] = useState(user);
             const [submitting, setSubmitting] = useState(false);
 
@@ -614,7 +700,7 @@
                     </div>
                 </form>
             );
-        };
+        });
 
         const App = () => {
             const [config, setConfig] = useState(null);
@@ -626,6 +712,7 @@
             const [selectedIds, setSelectedIds] = useState(new Set());
             const [loading, setLoading] = useState(false);
             const [searchTerm, setSearchTerm] = useState('');
+            const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
             
             // Modal States
             const [showDBPanel, setShowDBPanel] = useState(false); 
@@ -637,6 +724,14 @@
             
             // Confirm Modal State
             const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' });
+
+            // 搜索防抖
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    setDebouncedSearchTerm(searchTerm);
+                }, 300);
+                return () => clearTimeout(timer);
+            }, [searchTerm]);
 
             useEffect(() => {
                 const savedConfigs = JSON.parse(localStorage.getItem('lc_db_configs') || '[]');
@@ -713,7 +808,7 @@
 
             // Filter Users
             const filteredUsers = useMemo(() => {
-                const lower = searchTerm.toLowerCase();
+                const lower = debouncedSearchTerm.toLowerCase();
                 const filtered = users.filter(u => 
                     (u.username && u.username.toLowerCase().includes(lower)) || 
                     (u.role === 'superadmin' ? '超级管理员' : u.role === 'admin' ? '管理员' : u.role === 'guest' ? '访客' : '检查人').includes(lower)
@@ -726,7 +821,7 @@
                     }
                     return priorityDiff;
                 });
-            }, [users, searchTerm]);
+            }, [users, debouncedSearchTerm]);
 
             const stats = useMemo(() => ({
                 total: users.length,
@@ -1186,6 +1281,17 @@
 
         const root = createRoot(document.getElementById('root'));
         root.render(<App />);
+        
+        // 隐藏加载屏幕
+        window.addEventListener('load', () => {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                setTimeout(() => {
+                    loadingScreen.classList.add('hide');
+                    setTimeout(() => loadingScreen.remove(), 300);
+                }, 100);
+            }
+        });
     </script>
 </body>
 </html>
