@@ -62,6 +62,9 @@
     <!-- SheetJS for Excel Import - 延迟加载，仅在需要时使用 -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" defer></script>
 
+    <!-- LeanCloud SDK (用于控制台脚本支持) -->
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.2/dist/av-min.js"></script>
+
     <style>
         /* 使用国内镜像源 fonts.loli.net 替代 fonts.googleapis.com */
         /* 字体异步加载，使用系统字体作为fallback */
@@ -136,7 +139,8 @@
             Settings, Plus, Trash2, User, Key, Shield, Save, X, 
             Database, Search, RefreshCw, AlertCircle, CheckCircle, LogOut,
             FileSpreadsheet, Upload, Edit, MoreHorizontal, CheckSquare, Square, Download,
-            Copy, Users, UserCheck, UserCog, ArrowRightLeft, AlertTriangle, Lock, ChevronRight
+            Copy, Users, UserCheck, UserCog, ArrowRightLeft, AlertTriangle, Lock, ChevronRight,
+            Building2, GraduationCap, ChevronDown, ChevronUp, BookOpen, Layers, Home, Loader
         } from 'lucide-react';
 
         // --- 预设配置区 ---
@@ -303,6 +307,199 @@
                     await Promise.all(batch.map(id => this.deleteUser(config, id)));
                 }
                 return true;
+            },
+
+            // ========== 学院配置管理 API ==========
+            async getCollegeConfigs(config) {
+                const cacheKey = `college_${config.appId}`;
+                const cached = this._cache.get(cacheKey);
+                if (cached && Date.now() - cached.timestamp < this._cacheTimeout) {
+                    return cached.data;
+                }
+                
+                const res = await fetch(`${config.apiUrl}/CollegeConfig?order=sortOrder,college,major,classNum&limit=1000`, { 
+                    headers: this.getHeaders(config),
+                    cache: 'no-cache'
+                });
+                // 404 表示 Class 尚未创建，返回空数组
+                if (res.status === 404) {
+                    this._cache.set(cacheKey, { data: [], timestamp: Date.now() });
+                    return [];
+                }
+                if (!res.ok) throw new Error("获取学院配置失败");
+                const data = await res.json();
+                const configs = data.results || [];
+                
+                this._cache.set(cacheKey, { data: configs, timestamp: Date.now() });
+                return configs;
+            },
+
+            async addCollegeConfig(config, item) {
+                const res = await fetch(`${config.apiUrl}/CollegeConfig`, {
+                    method: 'POST',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(item)
+                });
+                if (!res.ok) throw new Error("添加配置失败");
+                this._cache.delete(`college_${config.appId}`);
+                return await res.json();
+            },
+
+            async updateCollegeConfig(config, objectId, updates) {
+                const res = await fetch(`${config.apiUrl}/CollegeConfig/${objectId}`, {
+                    method: 'PUT',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(updates)
+                });
+                if (!res.ok) throw new Error("更新配置失败");
+                this._cache.delete(`college_${config.appId}`);
+                return true;
+            },
+
+            async deleteCollegeConfig(config, objectId) {
+                const res = await fetch(`${config.apiUrl}/CollegeConfig/${objectId}`, {
+                    method: 'DELETE',
+                    headers: this.getHeaders(config)
+                });
+                if (!res.ok) throw new Error("删除配置失败");
+                this._cache.delete(`college_${config.appId}`);
+                return true;
+            },
+
+            async batchAddCollegeConfigs(config, items) {
+                const results = { success: 0, failed: 0 };
+                const batchSize = 10;
+                for (let i = 0; i < items.length; i += batchSize) {
+                    const batch = items.slice(i, i + batchSize);
+                    await Promise.all(batch.map(item => 
+                        this.addCollegeConfig(config, item)
+                            .then(() => results.success++)
+                            .catch(() => results.failed++)
+                    ));
+                }
+                return results;
+            },
+
+            async batchDeleteCollegeConfigs(config, ids) {
+                const idArray = Array.from(ids);
+                const batchSize = 10;
+                for (let i = 0; i < idArray.length; i += batchSize) {
+                    const batch = idArray.slice(i, i + batchSize);
+                    await Promise.all(batch.map(id => this.deleteCollegeConfig(config, id)));
+                }
+                return true;
+            },
+
+            // ========== 公寓配置管理 API ==========
+            async getApartmentConfigs(config) {
+                const cacheKey = `apartment_${config.appId}`;
+                const cached = this._cache.get(cacheKey);
+                if (cached && Date.now() - cached.timestamp < this._cacheTimeout) {
+                    return cached.data;
+                }
+                
+                const res = await fetch(`${config.apiUrl}/ApartmentConfig?order=sortOrder&limit=100`, { 
+                    headers: this.getHeaders(config),
+                    cache: 'no-cache'
+                });
+                if (res.status === 404) {
+                    this._cache.set(cacheKey, { data: [], timestamp: Date.now() });
+                    return [];
+                }
+                if (!res.ok) throw new Error("获取公寓配置失败");
+                const data = await res.json();
+                const configs = data.results || [];
+                
+                this._cache.set(cacheKey, { data: configs, timestamp: Date.now() });
+                return configs;
+            },
+
+            async addApartmentConfig(config, item) {
+                const res = await fetch(`${config.apiUrl}/ApartmentConfig`, {
+                    method: 'POST',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(item)
+                });
+                if (!res.ok) throw new Error("添加公寓失败");
+                this._cache.delete(`apartment_${config.appId}`);
+                return await res.json();
+            },
+
+            async updateApartmentConfig(config, objectId, updates) {
+                const res = await fetch(`${config.apiUrl}/ApartmentConfig/${objectId}`, {
+                    method: 'PUT',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(updates)
+                });
+                if (!res.ok) throw new Error("更新公寓失败");
+                this._cache.delete(`apartment_${config.appId}`);
+                return true;
+            },
+
+            async deleteApartmentConfig(config, objectId) {
+                const res = await fetch(`${config.apiUrl}/ApartmentConfig/${objectId}`, {
+                    method: 'DELETE',
+                    headers: this.getHeaders(config)
+                });
+                if (!res.ok) throw new Error("删除公寓失败");
+                this._cache.delete(`apartment_${config.appId}`);
+                return true;
+            },
+
+            // ========== 违纪类型配置管理 API ==========
+            async getViolationConfigs(config) {
+                const cacheKey = `violation_${config.appId}`;
+                const cached = this._cache.get(cacheKey);
+                if (cached && Date.now() - cached.timestamp < this._cacheTimeout) {
+                    return cached.data;
+                }
+                
+                const res = await fetch(`${config.apiUrl}/ViolationConfig?order=sortOrder&limit=100`, { 
+                    headers: this.getHeaders(config),
+                    cache: 'no-cache'
+                });
+                if (res.status === 404) {
+                    this._cache.set(cacheKey, { data: [], timestamp: Date.now() });
+                    return [];
+                }
+                if (!res.ok) throw new Error("获取违纪类型配置失败");
+                const data = await res.json();
+                const configs = data.results || [];
+                
+                this._cache.set(cacheKey, { data: configs, timestamp: Date.now() });
+                return configs;
+            },
+
+            async addViolationConfig(config, item) {
+                const res = await fetch(`${config.apiUrl}/ViolationConfig`, {
+                    method: 'POST',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(item)
+                });
+                if (!res.ok) throw new Error("添加违纪类型失败");
+                this._cache.delete(`violation_${config.appId}`);
+                return await res.json();
+            },
+
+            async updateViolationConfig(config, objectId, updates) {
+                const res = await fetch(`${config.apiUrl}/ViolationConfig/${objectId}`, {
+                    method: 'PUT',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(updates)
+                });
+                if (!res.ok) throw new Error("更新违纪类型失败");
+                this._cache.delete(`violation_${config.appId}`);
+                return true;
+            },
+
+            async deleteViolationConfig(config, objectId) {
+                const res = await fetch(`${config.apiUrl}/ViolationConfig/${objectId}`, {
+                    method: 'DELETE',
+                    headers: this.getHeaders(config)
+                });
+                if (!res.ok) throw new Error("删除违纪类型失败");
+                this._cache.delete(`violation_${config.appId}`);
+                return true;
             }
         };
 
@@ -339,6 +536,519 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            );
+        });
+
+        const CollegeConfigPanel = React.memo(({ config }) => {
+            const [items, setItems] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [editingItem, setEditingItem] = useState(null);
+            const [showAdd, setShowAdd] = useState(false);
+            
+            // Tree structure state
+            const [expandedColleges, setExpandedColleges] = useState(new Set());
+            const [expandedMajors, setExpandedMajors] = useState(new Set());
+
+            const loadData = async () => {
+                setLoading(true);
+                try {
+                    const data = await LCService.getCollegeConfigs(config);
+                    setItems(data);
+                } catch (e) {
+                    alert("加载配置失败: " + e.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                loadData();
+            }, [config]);
+
+            const handleDelete = async (id) => {
+                if (!confirm("确定删除此条目吗？")) return;
+                try {
+                    await LCService.deleteCollegeConfig(config, id);
+                    setItems(items.filter(i => i.objectId !== id));
+                } catch (e) {
+                    alert("删除失败: " + e.message);
+                }
+            };
+
+            const handleSave = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const item = {
+                    college: formData.get('college'),
+                    major: formData.get('major'),
+                    classNum: formData.get('classNum'),
+                    counselor: formData.get('counselor'),
+                    sortOrder: Number(formData.get('sortOrder')) || 0
+                };
+
+                try {
+                    if (editingItem) {
+                        await LCService.updateCollegeConfig(config, editingItem.objectId, item);
+                        setItems(items.map(i => i.objectId === editingItem.objectId ? {...i, ...item} : i));
+                        setEditingItem(null);
+                    } else {
+                        const newItem = await LCService.addCollegeConfig(config, item);
+                        setItems([...items, {...item, ...newItem, objectId: newItem.objectId}]);
+                        setShowAdd(false);
+                    }
+                } catch (e) {
+                    alert("保存失败: " + e.message);
+                }
+            };
+
+            // Group data for tree view
+            const treeData = useMemo(() => {
+                const groups = {};
+                const filtered = items.filter(i => 
+                    (i.college+i.major+i.classNum+i.counselor).toLowerCase().includes(searchTerm.toLowerCase())
+                );
+
+                filtered.forEach(item => {
+                    if (!groups[item.college]) groups[item.college] = {};
+                    if (!groups[item.college][item.major]) groups[item.college][item.major] = [];
+                    groups[item.college][item.major].push(item);
+                });
+                return groups;
+            }, [items, searchTerm]);
+
+            const toggleCollege = (c) => {
+                const newSet = new Set(expandedColleges);
+                if (newSet.has(c)) newSet.delete(c); else newSet.add(c);
+                setExpandedColleges(newSet);
+            };
+
+            const toggleMajor = (k) => {
+                const newSet = new Set(expandedMajors);
+                if (newSet.has(k)) newSet.delete(k); else newSet.add(k);
+                setExpandedMajors(newSet);
+            };
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-4 flex-1">
+                            <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                <Building2 className="text-sky-500"/> 学院配置管理
+                            </h2>
+                            <div className="relative max-w-xs w-full">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
+                                <input 
+                                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-sky-500 transition-all"
+                                    placeholder="搜索学院/专业/班级/辅导员..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => setShowAdd(true)} className="px-4 py-2 bg-sky-500 text-white rounded-lg font-bold text-sm hover:bg-sky-600 shadow-lg shadow-sky-500/20 active:scale-95 transition-all flex items-center gap-2">
+                                <Plus size={18}/> 新增班级
+                            </button>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="text-center py-12"><RefreshCw className="animate-spin inline text-sky-500" size={24}/></div>
+                    ) : (
+                        <div className="space-y-3">
+                            {Object.entries(treeData).map(([college, majors]) => (
+                                <div key={college} className="bg-white rounded-xl border border-slate-200 overflow-hidden group">
+                                    <div 
+                                        className="p-4 bg-slate-50 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
+                                        onClick={() => toggleCollege(college)}
+                                    >
+                                        <div className="flex items-center gap-2 font-bold text-slate-700">
+                                            {expandedColleges.has(college) ? <ChevronDown size={18}/> : <ChevronRight size={18}/>}
+                                            <Building2 size={18} className="text-slate-400"/>
+                                            {college}
+                                            <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full ml-2">
+                                                {Object.values(majors).flat().length} 个班级
+                                            </span>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                if (confirm(`确定删除学院「${college}」下的所有 ${Object.values(majors).flat().length} 个班级吗？此操作不可恢复！`)) {
+                                                    const idsToDelete = Object.values(majors).flat().map(c => c.objectId);
+                                                    Promise.all(idsToDelete.map(id => LCService.deleteCollegeConfig(config, id)))
+                                                        .then(() => { setItems(items.filter(i => i.college !== college)); })
+                                                        .catch(err => alert('删除失败: ' + err.message));
+                                                }
+                                            }} 
+                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="删除整个学院"
+                                        >
+                                            <Trash2 size={16}/>
+                                        </button>
+                                    </div>
+                                    
+                                    {expandedColleges.has(college) && (
+                                        <div className="p-2 space-y-2 border-t border-slate-100">
+                                            {Object.entries(majors).map(([major, classes]) => {
+                                                const majorKey = `${college}-${major}`;
+                                                return (
+                                                    <div key={major} className="pl-4">
+                                                        <div 
+                                                            className="flex items-center justify-between py-2 cursor-pointer text-slate-700 font-bold text-sm hover:text-sky-600 group/major"
+                                                        >
+                                                            <div className="flex items-center gap-2" onClick={() => toggleMajor(majorKey)}>
+                                                                {expandedMajors.has(majorKey) ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
+                                                                <GraduationCap size={16} className="text-slate-400"/>
+                                                                {major}
+                                                                <span className="text-xs text-slate-400 font-normal ml-1">({classes.length})</span>
+                                                            </div>
+                                                            <button 
+                                                                onClick={(e) => { 
+                                                                    e.stopPropagation(); 
+                                                                    if (confirm(`确定删除专业「${major}」下的所有 ${classes.length} 个班级吗？`)) {
+                                                                        const idsToDelete = classes.map(c => c.objectId);
+                                                                        Promise.all(idsToDelete.map(id => LCService.deleteCollegeConfig(config, id)))
+                                                                            .then(() => { setItems(items.filter(i => !(i.college === college && i.major === major))); })
+                                                                            .catch(err => alert('删除失败: ' + err.message));
+                                                                    }
+                                                                }} 
+                                                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover/major:opacity-100 transition-opacity"
+                                                                title="删除整个专业"
+                                                            >
+                                                                <Trash2 size={14}/>
+                                                            </button>
+                                                        </div>
+                                                        
+                                                        {expandedMajors.has(majorKey) && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pl-6 mt-1 mb-3">
+                                                                {classes.map(cls => (
+                                                                    <div key={cls.objectId} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-lg hover:shadow-md hover:border-sky-100 transition-all group">
+                                                                        <div>
+                                                                            <div className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                                                                {cls.classNum}
+                                                                                <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded">{cls.sortOrder}</span>
+                                                                            </div>
+                                                                            <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                                                                <User size={12}/> {cls.counselor}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                            <button onClick={() => setEditingItem(cls)} className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg">
+                                                                                <Edit size={14}/>
+                                                                            </button>
+                                                                            <button onClick={() => handleDelete(cls.objectId)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                                                                <Trash2 size={14}/>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {Object.keys(treeData).length === 0 && (
+                                <div className="text-center py-12 text-slate-400">暂无学院配置数据</div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Edit/Add Modal */}
+                    {(showAdd || editingItem) && (
+                        <Modal title={editingItem ? "编辑班级信息" : "新增班级"} onClose={() => { setShowAdd(false); setEditingItem(null); }}>
+                            <form onSubmit={handleSave} className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">学院名称</label>
+                                    <input required name="college" defaultValue={editingItem?.college} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-sky-500 transition-all" placeholder="如：数智技术学院"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">专业名称</label>
+                                    <input required name="major" defaultValue={editingItem?.major} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-sky-500 transition-all" placeholder="如：计算机应用技术"/>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1 block">班级编号</label>
+                                        <input required name="classNum" defaultValue={editingItem?.classNum} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-sky-500 transition-all" placeholder="如：2501"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1 block">辅导员姓名</label>
+                                        <input required name="counselor" defaultValue={editingItem?.counselor} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-sky-500 transition-all" placeholder="如：刘航宇"/>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">排序权重 (越小越靠前)</label>
+                                    <input type="number" name="sortOrder" defaultValue={editingItem?.sortOrder || 0} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-sky-500 transition-all"/>
+                                </div>
+                                <button className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 shadow-lg shadow-slate-800/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2">
+                                    <Save size={18}/> 保存配置
+                                </button>
+                            </form>
+                        </Modal>
+                    )}
+                </div>
+            );
+        });
+
+        const ApartmentConfigPanel = React.memo(({ config }) => {
+            const [items, setItems] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [editingItem, setEditingItem] = useState(null);
+            const [showAdd, setShowAdd] = useState(false);
+            
+            const loadData = async () => {
+                setLoading(true);
+                try {
+                    const data = await LCService.getApartmentConfigs(config);
+                    setItems(data);
+                } catch (e) {
+                    alert("加载公寓配置失败: " + e.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => { loadData(); }, [config]);
+
+            const handleDelete = async (id) => {
+                if (!confirm("确定删除此公寓吗？")) return;
+                try {
+                    await LCService.deleteApartmentConfig(config, id);
+                    setItems(items.filter(i => i.objectId !== id));
+                } catch (e) {
+                    alert("删除失败: " + e.message);
+                }
+            };
+
+            const handleSave = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const item = {
+                    name: formData.get('name'),
+                    sortOrder: Number(formData.get('sortOrder')) || 0
+                };
+
+                try {
+                    if (editingItem) {
+                        await LCService.updateApartmentConfig(config, editingItem.objectId, item);
+                        setItems(items.map(i => i.objectId === editingItem.objectId ? {...i, ...item} : i));
+                        setEditingItem(null);
+                    } else {
+                        const newItem = await LCService.addApartmentConfig(config, item);
+                        setItems([...items, {...item, ...newItem, objectId: newItem.objectId}]);
+                        setShowAdd(false);
+                    }
+                } catch (e) {
+                    alert("保存失败: " + e.message);
+                }
+            };
+
+            return (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                        <div>
+                            <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Home size={20} className="text-indigo-500"/> 公寓配置列表</h2>
+                            <p className="text-xs text-slate-400 mt-1">管理查寝系统的公寓选项</p>
+                        </div>
+                        <button onClick={() => setShowAdd(true)} className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-600 active:scale-95 transition-all flex items-center gap-2">
+                            <Plus size={16}/> 新增公寓
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        {loading ? (
+                            <div className="p-8 text-center text-slate-400"><Loader size={24} className="animate-spin mx-auto mb-2"/> 加载中...</div>
+                        ) : items.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400">暂无公寓数据，请添加</div>
+                        ) : (
+                            <div className="divide-y divide-slate-100">
+                                {items.map(item => (
+                                    <div key={item.objectId} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center font-bold text-xs">{item.sortOrder}</div>
+                                            <span className="font-bold text-slate-700">{item.name}</span>
+                                        </div>
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => setEditingItem(item)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit size={16}/></button>
+                                            <button onClick={() => handleDelete(item.objectId)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {(showAdd || editingItem) && (
+                        <Modal title={editingItem ? "编辑公寓" : "新增公寓"} onClose={() => { setShowAdd(false); setEditingItem(null); }}>
+                            <form onSubmit={handleSave} className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">公寓名称</label>
+                                    <input required name="name" defaultValue={editingItem?.name} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all" placeholder="如：1公寓"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">排序权重</label>
+                                    <input type="number" name="sortOrder" defaultValue={editingItem?.sortOrder || 0} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"/>
+                                </div>
+                                <button className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 shadow-lg shadow-slate-800/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2">
+                                    <Save size={18}/> 保存配置
+                                </button>
+                            </form>
+                        </Modal>
+                    )}
+                </div>
+            );
+        });
+
+        const ViolationConfigPanel = React.memo(({ config }) => {
+            const [items, setItems] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [editingItem, setEditingItem] = useState(null);
+            const [showAdd, setShowAdd] = useState(false);
+            
+            const loadData = async () => {
+                setLoading(true);
+                try {
+                    const data = await LCService.getViolationConfigs(config);
+                    setItems(data);
+                } catch (e) {
+                    alert("加载违纪配置失败: " + e.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => { loadData(); }, [config]);
+
+            const handleDelete = async (id) => {
+                if (!confirm("确定删除此违纪类型吗？")) return;
+                try {
+                    await LCService.deleteViolationConfig(config, id);
+                    setItems(items.filter(i => i.objectId !== id));
+                } catch (e) {
+                    alert("删除失败: " + e.message);
+                }
+            };
+
+            const handleSave = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const optionsStr = formData.get('options');
+                
+                const item = {
+                    key: formData.get('key'),
+                    label: formData.get('label'),
+                    bgColor: formData.get('bgColor'),
+                    textColor: formData.get('textColor'),
+                    borderColor: formData.get('borderColor'),
+                    options: optionsStr ? optionsStr.split(',').map(s => s.trim()).filter(Boolean) : [],
+                    sortOrder: Number(formData.get('sortOrder')) || 0
+                };
+
+                try {
+                    if (editingItem) {
+                        await LCService.updateViolationConfig(config, editingItem.objectId, item);
+                        setItems(items.map(i => i.objectId === editingItem.objectId ? {...i, ...item} : i));
+                        setEditingItem(null);
+                    } else {
+                        const newItem = await LCService.addViolationConfig(config, item);
+                        setItems([...items, {...item, ...newItem, objectId: newItem.objectId}]);
+                        setShowAdd(false);
+                    }
+                } catch (e) {
+                    alert("保存失败: " + e.message);
+                }
+            };
+
+            return (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                        <div>
+                            <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><AlertTriangle size={20} className="text-orange-500"/> 违纪类型列表</h2>
+                            <p className="text-xs text-slate-400 mt-1">管理违纪类别及细则</p>
+                        </div>
+                        <button onClick={() => setShowAdd(true)} className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-orange-500/20 hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-2">
+                            <Plus size={16}/> 新增类型
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        {loading ? (
+                            <div className="p-8 text-center text-slate-400"><Loader size={24} className="animate-spin mx-auto mb-2"/> 加载中...</div>
+                        ) : items.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400">暂无违纪数据，请添加</div>
+                        ) : (
+                            <div className="divide-y divide-slate-100">
+                                {items.map(item => (
+                                    <div key={item.objectId} className="p-4 hover:bg-slate-50 transition-colors group">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-6 h-6 rounded bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs">{item.sortOrder}</div>
+                                                <span className={`px-2 py-0.5 rounded text-xs font-bold border ${item.bgColor} ${item.textColor} ${item.borderColor || 'border-transparent'}`}>{item.label}</span>
+                                                <span className="text-xs text-slate-400 font-mono">{item.key}</span>
+                                            </div>
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => setEditingItem(item)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit size={16}/></button>
+                                                <button onClick={() => handleDelete(item.objectId)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                                            </div>
+                                        </div>
+                                        <div className="pl-9 flex flex-wrap gap-1">
+                                            {item.options && item.options.map((opt, idx) => (
+                                                <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px]">{opt}</span>
+                                            ))}
+                                            {(!item.options || item.options.length === 0) && <span className="text-xs text-slate-300 italic">无细则</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {(showAdd || editingItem) && (
+                        <Modal title={editingItem ? "编辑类型" : "新增类型"} onClose={() => { setShowAdd(false); setEditingItem(null); }}>
+                            <form onSubmit={handleSave} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1 block">类型 Key (英文)</label>
+                                        <input required name="key" defaultValue={editingItem?.key} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-orange-500 transition-all" placeholder="如：hygiene"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1 block">显示名称</label>
+                                        <input required name="label" defaultValue={editingItem?.label} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-orange-500 transition-all" placeholder="如：🧹 卫生极差"/>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1 block">背景色 (Tailwind)</label>
+                                        <input required name="bgColor" defaultValue={editingItem?.bgColor || 'bg-slate-50'} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-orange-500 transition-all"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1 block">文字色 (Tailwind)</label>
+                                        <input required name="textColor" defaultValue={editingItem?.textColor || 'text-slate-600'} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-orange-500 transition-all"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 mb-1 block">边框色 (Tailwind)</label>
+                                        <input name="borderColor" defaultValue={editingItem?.borderColor || 'border-slate-200'} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-orange-500 transition-all"/>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">细则选项 (逗号分隔)</label>
+                                    <textarea name="options" defaultValue={editingItem?.options?.join(', ')} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-orange-500 transition-all h-24" placeholder="垃圾未倒, 物品杂乱, 地面脏污"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">排序权重</label>
+                                    <input type="number" name="sortOrder" defaultValue={editingItem?.sortOrder || 0} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-orange-500 transition-all"/>
+                                </div>
+                                <button className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 shadow-lg shadow-slate-800/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2">
+                                    <Save size={18}/> 保存配置
+                                </button>
+                            </form>
+                        </Modal>
+                    )}
                 </div>
             );
         });
@@ -713,6 +1423,8 @@
             const [loading, setLoading] = useState(false);
             const [searchTerm, setSearchTerm] = useState('');
             const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+            const [currentView, setCurrentView] = useState('users'); // users | config
+            const [configTab, setConfigTab] = useState('college'); // college | apartment | violation
             
             // Modal States
             const [showDBPanel, setShowDBPanel] = useState(false); 
@@ -850,6 +1562,7 @@
                 // 切换数据库后，强制退出登录状态，因为不同数据库的账号不同
                 setIsLoggedIn(false);
                 setUsers([]);
+                setCurrentView('users');
                 showToast(`已切换至: ${newCfg.name}，请重新登录`);
             };
 
@@ -876,6 +1589,7 @@
             const handleLoginSuccess = (user) => {
                 setCurrentUser(user);
                 setIsLoggedIn(true);
+                setCurrentView('users');
                 showToast(`欢迎回来，${user.username}`);
                 loadUsers(config); // 登录成功后才加载数据
             };
@@ -1009,10 +1723,20 @@
                                         {config?.name}
                                     </div>
                                 </div>
+                                {currentUser?.role === 'superadmin' && (
+                                    <div className="hidden md:flex bg-slate-100 p-1 rounded-lg ml-4">
+                                        <button onClick={() => setCurrentView('users')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${currentView === 'users' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}>
+                                            <Users size={14}/> 账号管理
+                                        </button>
+                                        <button onClick={() => setCurrentView('config')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${currentView === 'config' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}>
+                                            <Building2 size={14}/> 学院配置
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Center: Search Bar */}
-                            <div className="flex-1 max-w-md hidden md:block">
+                            <div className={`flex-1 max-w-md hidden md:block ${currentView !== 'users' ? 'opacity-0 pointer-events-none' : ''}`}>
                                 <div className="relative group">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" size={18}/>
                                     <input 
@@ -1027,7 +1751,7 @@
 
                             {/* Right: Actions */}
                             <div className="flex items-center gap-2">
-                                {currentUser?.role === 'superadmin' && (
+                                {currentUser?.role === 'superadmin' && currentView === 'users' && (
                                     <>
                                         <button onClick={() => setShowImport(true)} className="hidden md:flex bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl text-sm font-bold border border-emerald-100 hover:bg-emerald-100 hover:shadow-md transition-all items-center gap-2">
                                             <FileSpreadsheet size={18}/> 导入
@@ -1051,6 +1775,8 @@
                     </header>
 
                     {/* Stats Bar */}
+                    {currentView === 'users' && (
+                        <>
                     <div className="max-w-7xl mx-auto px-4 mt-6">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
@@ -1086,9 +1812,14 @@
                         </div>
                     </div>
 
+
+                        </>
+                    )}
+
                     {/* Content */}
                     <main className="max-w-7xl mx-auto px-4 pt-6">
-                        {loading ? (
+                        {currentView === 'users' ? (
+                            loading ? (
                             <div className="text-center py-32 text-slate-400 flex flex-col items-center">
                                 <RefreshCw className="animate-spin mb-4 text-sky-500" size={32}/> 
                                 <span className="font-bold text-slate-500">正在同步数据...</span>
@@ -1201,14 +1932,56 @@
                                     )}
                                 </div>
                             </>
-                        )}
+                        )
+                    ) : (
+                        <div className="animate-fade-in">
+                            <div className="flex items-center gap-2 mb-6 bg-white p-1.5 rounded-xl border border-slate-200 inline-flex shadow-sm">
+                                <button 
+                                    onClick={() => setConfigTab('college')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${configTab === 'college' ? 'bg-slate-800 text-white shadow-md shadow-slate-800/20' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
+                                >
+                                    <Building2 size={16}/> 学院配置
+                                </button>
+                                <button 
+                                    onClick={() => setConfigTab('apartment')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${configTab === 'apartment' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30' : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                                >
+                                    <Home size={16}/> 公寓配置
+                                </button>
+                                <button 
+                                    onClick={() => setConfigTab('violation')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${configTab === 'violation' ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' : 'text-slate-500 hover:text-orange-600 hover:bg-orange-50'}`}
+                                >
+                                    <AlertTriangle size={16}/> 违纪配置
+                                </button>
+                            </div>
+
+                            {configTab === 'college' && <CollegeConfigPanel config={config} />}
+                            {configTab === 'apartment' && <ApartmentConfigPanel config={config} />}
+                            {configTab === 'violation' && <ViolationConfigPanel config={config} />}
+                        </div>
+                    )}
                     </main>
 
                     {/* Floating FAB for mobile */}
-                    {currentUser?.role === 'superadmin' && (
-                        <button onClick={() => setShowImport(true)} className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/30 flex items-center justify-center z-30 transition-transform active:scale-90">
+                    {currentUser?.role === 'superadmin' && currentView === 'users' && (
+                        <button onClick={() => setShowImport(true)} className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/30 flex items-center justify-center z-30 transition-transform active:scale-90">
                             <FileSpreadsheet size={24}/>
                         </button>
+                    )}
+
+                    {/* Mobile Bottom Navigation */}
+                    {currentUser?.role === 'superadmin' && (
+                        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 z-40 flex justify-around">
+                            <button onClick={() => setCurrentView('users')} className={`flex-1 py-2 flex flex-col items-center gap-1 ${currentView === 'users' ? 'text-sky-600' : 'text-slate-400'}`}>
+                                <Users size={20}/>
+                                <span className="text-[10px] font-bold">账号管理</span>
+                            </button>
+                            <button onClick={() => setCurrentView('config')} className={`flex-1 py-2 flex flex-col items-center gap-1 ${currentView === 'config' ? 'text-sky-600' : 'text-slate-400'}`}>
+                                <Building2 size={20}/>
+                                <span className="text-[10px] font-bold">学院配置</span>
+                            </button>
+                        </div>
                     )}
 
                     {/* Modals */}
