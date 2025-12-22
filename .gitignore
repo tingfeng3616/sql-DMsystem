@@ -1,0 +1,30 @@
+# 依赖目录
+node_modules/
+
+# 构建过程中生成的临时文件
+src/
+public/
+index.vite.html
+dist/
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+npm-debug.log*
+
+# 锁定文件（可选，如果想保留可删除这行）
+package-lock.json
