@@ -102,6 +102,9 @@ const viteHtml = `<!DOCTYPE html>
     <!-- DNS预连接优化 -->
     <link rel="dns-prefetch" href="https://fonts.loli.net">
     <link rel="preconnect" href="https://fonts.loli.net" crossorigin>
+    
+    <!-- Cloudflare Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body class="text-slate-700 selection:bg-sky-100 selection:text-sky-700">
     <!-- 加载进度屏幕 -->
