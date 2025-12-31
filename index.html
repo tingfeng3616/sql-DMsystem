@@ -1269,7 +1269,7 @@
 
                             {/* Turnstile 人机验证 */}
                             <div className="flex flex-col items-center mt-2">
-                                <div ref={turnstileRef} className="turnstile-container" />
+                                <div ref={turnstileRef} className="turnstile-container min-h-[65px]" />
                                 {turnstileStatus === 'loading' && (
                                     <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
                                         <Loader className="animate-spin" size={12}/>
