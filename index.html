@@ -1088,7 +1088,11 @@
 
             // Turnstile 初始化
             useEffect(() => {
+                let attempts = 0;
+                const maxAttempts = 100; // 最多尝试 10 秒 (100 * 100ms)
+                
                 const initTurnstile = () => {
+                    attempts++;
                     if (window.turnstile && turnstileRef.current) {
                         turnstileRef.current.innerHTML = '';
                         window.turnstile.render(turnstileRef.current, {
@@ -1111,8 +1115,12 @@
                                 setTurnstileStatus('error');
                             }
                         });
-                    } else {
+                    } else if (attempts < maxAttempts) {
                         setTimeout(initTurnstile, 100);
+                    } else {
+                        // 超时，脚本可能加载失败
+                        console.error('❌ Turnstile 脚本加载超时');
+                        setTurnstileStatus('error');
                     }
                 };
                 initTurnstile();
