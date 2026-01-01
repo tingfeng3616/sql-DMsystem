@@ -1204,8 +1204,14 @@
             const turnstileRef = React.useRef(null);
             const turnstileTokenRef = React.useRef(null);
 
-            // Turnstile 初始化
+            // Turnstile 初始化（根据配置决定是否启用）
             useEffect(() => {
+                if (!ENABLE_TURNSTILE) {
+                    console.log('ℹ️ Turnstile 验证已禁用');
+                    setTurnstileStatus('ready');
+                    turnstileTokenRef.current = 'TURNSTILE_DISABLED';
+                    return;
+                }
                 let attempts = 0;
                 const maxAttempts = 100; // 最多尝试 10 秒 (100 * 100ms)
                 
@@ -1258,8 +1264,8 @@
                 }
                 setLoading(true);
                 
-                // 如果 Turnstile 还未完成，等待它完成
-                if (!turnstileTokenRef.current) {
+                // 如果 Turnstile 还未完成，等待它完成（仅在启用时）
+                if (ENABLE_TURNSTILE && !turnstileTokenRef.current) {
                     setError('正在等待安全验证，请稍候...');
                     let waited = 0;
                     while (!turnstileTokenRef.current && waited < 10000) {
@@ -1275,27 +1281,29 @@
                 }
                 
                 try {
-                    // 1. 先验证 Turnstile Token
-                    const verifyRes = await fetch(TURNSTILE_VERIFY_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: turnstileTokenRef.current })
-                    });
-                    const verifyResult = await verifyRes.json();
-                    
-                    if (!verifyResult.success) {
-                        setError(verifyResult.error || '人机验证失败，请刷新重试');
-                        turnstileTokenRef.current = null;
-                        setTurnstileToken(null);
-                        setTurnstileStatus('loading');
-                        if (window.turnstile && turnstileRef.current) {
-                            window.turnstile.reset(turnstileRef.current);
+                    // 1. 先验证 Turnstile Token（仅在启用时）
+                    if (ENABLE_TURNSTILE) {
+                        const verifyRes = await fetch(TURNSTILE_VERIFY_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: turnstileTokenRef.current })
+                        });
+                        const verifyResult = await verifyRes.json();
+                        
+                        if (!verifyResult.success) {
+                            setError(verifyResult.error || '人机验证失败，请刷新重试');
+                            turnstileTokenRef.current = null;
+                            setTurnstileToken(null);
+                            setTurnstileStatus('loading');
+                            if (window.turnstile && turnstileRef.current) {
+                                window.turnstile.reset(turnstileRef.current);
+                            }
+                            setLoading(false);
+                            return;
                         }
-                        setLoading(false);
-                        return;
                     }
                     
-                    // 2. 验证通过，继续登录
+                    // 2. 继续登录
                     const user = await LCService.login(config, username, password);
                     onLogin(user);
                 } catch (err) {
@@ -1385,28 +1393,30 @@
                                 </div>
                             )}
 
-                            {/* Turnstile 人机验证 */}
-                            <div className="flex flex-col items-center mt-2">
-                                <div ref={turnstileRef} className="turnstile-container" style={{ minHeight: '65px' }} />
-                                {turnstileStatus === 'loading' && (
-                                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
-                                        <Loader className="animate-spin" size={12}/>
-                                        <span>正在加载安全验证...</span>
-                                    </div>
-                                )}
-                                {turnstileStatus === 'error' && (
-                                    <div className="flex items-center gap-2 text-xs text-red-500 mt-2">
-                                        <AlertCircle size={12}/>
-                                        <span>验证加载失败，请刷新页面</span>
-                                    </div>
-                                )}
-                                {turnstileStatus === 'ready' && turnstileToken && (
-                                    <div className="flex items-center gap-2 text-xs text-green-600 mt-2">
-                                        <CheckCircle size={12}/>
-                                        <span>安全验证通过</span>
-                                    </div>
-                                )}
-                            </div>
+                            {/* Turnstile 人机验证 - 仅在启用时显示 */}
+                            {ENABLE_TURNSTILE && (
+                                <div className="flex flex-col items-center mt-2">
+                                    <div ref={turnstileRef} className="turnstile-container" style={{ minHeight: '65px' }} />
+                                    {turnstileStatus === 'loading' && (
+                                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+                                            <Loader className="animate-spin" size={12}/>
+                                            <span>正在加载安全验证...</span>
+                                        </div>
+                                    )}
+                                    {turnstileStatus === 'error' && (
+                                        <div className="flex items-center gap-2 text-xs text-red-500 mt-2">
+                                            <AlertCircle size={12}/>
+                                            <span>验证加载失败，请刷新页面</span>
+                                        </div>
+                                    )}
+                                    {turnstileStatus === 'ready' && turnstileToken && (
+                                        <div className="flex items-center gap-2 text-xs text-green-600 mt-2">
+                                            <CheckCircle size={12}/>
+                                            <span>安全验证通过</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <button 
                                 type="submit" 
