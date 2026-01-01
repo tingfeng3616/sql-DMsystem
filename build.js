@@ -162,4 +162,15 @@ if (fs.existsSync(swSrc)) {
     console.log('   ✅ 已复制 sw.js (Service Worker) 到 public 目录');
 }
 
+// ========== 5. 生成版本文件 (用于自动更新检测) ==========
+const versionData = {
+    version: new Date().toISOString(),
+    timestamp: Date.now()
+};
+fs.writeFileSync(
+    path.join(publicDir, 'version.json'),
+    JSON.stringify(versionData, null, 2)
+);
+console.log(`   ✅ 已生成 version.json (版本: ${versionData.version})`);
+
 console.log('\n🎉 构建准备完成！接下来执行 vite build...\n');

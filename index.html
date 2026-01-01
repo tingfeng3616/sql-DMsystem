@@ -131,6 +131,66 @@
             text-align: center;
         }
     </style>
+    
+    <!-- 版本检测与自动更新 -->
+    <script>
+        (function() {
+            const VERSION_URL = './version.json';
+            const VERSION_KEY = 'app_version_timestamp';
+            const CHECK_INTERVAL = 60000;
+            
+            function showUpdateNotification() {
+                const overlay = document.createElement('div');
+                overlay.innerHTML = `
+                    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+                        <div style="background: linear-gradient(135deg, #0c2340 0%, #1a3a5c 100%); border-radius: 20px; padding: 32px; text-align: center; max-width: 320px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
+                            <div style="font-size: 48px; margin-bottom: 16px;">🔄</div>
+                            <h2 style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 12px;">检测到新版本</h2>
+                            <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 24px; line-height: 1.6;">系统将自动更新到最新版本<br>请稍候...</p>
+                            <div style="width: 40px; height: 40px; margin: 0 auto; border: 3px solid rgba(255,255,255,0.2); border-top-color: #f59e0b; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            }
+            
+            async function clearCacheAndReload() {
+                try {
+                    if ('caches' in window) {
+                        const cacheNames = await caches.keys();
+                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    }
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        await Promise.all(registrations.map(reg => reg.unregister()));
+                    }
+                } catch (e) { console.warn('清理缓存时出错:', e); }
+                setTimeout(() => { window.location.reload(true); }, 1500);
+            }
+            
+            async function checkVersion() {
+                try {
+                    const response = await fetch(VERSION_URL + '?t=' + Date.now(), { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    const serverTimestamp = data.timestamp;
+                    const localTimestamp = localStorage.getItem(VERSION_KEY);
+                    if (localTimestamp && serverTimestamp > parseInt(localTimestamp)) {
+                        console.log('🔄 检测到新版本，正在更新...');
+                        localStorage.setItem(VERSION_KEY, serverTimestamp);
+                        showUpdateNotification();
+                        clearCacheAndReload();
+                    } else if (!localTimestamp) {
+                        localStorage.setItem(VERSION_KEY, serverTimestamp);
+                    }
+                } catch (e) { console.warn('版本检查失败:', e); }
+            }
+            
+            if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', checkVersion); } else { checkVersion(); }
+            setInterval(checkVersion, CHECK_INTERVAL);
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkVersion(); });
+        })();
+    </script>
 </head>
 <body class="text-slate-700 selection:bg-sky-100 selection:text-sky-700">
     <!-- 微信/QQ内打开提示遮罩 -->
