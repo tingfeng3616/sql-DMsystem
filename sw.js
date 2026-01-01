@@ -1,5 +1,5 @@
 // Service Worker for DM管理后台 PWA
-const CACHE_NAME = 'dm-cache-v1';
+const CACHE_NAME = 'dm-cache-v2';  // 版本号递增，强制更新
 
 const STATIC_ASSETS = [
   '/',
@@ -34,6 +34,12 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
   if (request.url.includes('lncld') || request.url.includes('leancloud')) return;
+
+  // 跳过 version.json - 版本检测必须总是从网络获取最新
+  if (request.url.includes('version.json')) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   event.respondWith(
     fetch(request)
