@@ -47,7 +47,8 @@ jsxCode = jsxCode
     .replace(/from\s+['"]react['"]/g, 'from "react"')
     .replace(/from\s+['"]react-dom['"]/g, 'from "react-dom"')
     .replace(/from\s+['"]react-dom\/client['"]/g, 'from "react-dom/client"')
-    .replace(/from\s+['"]lucide-react['"]/g, 'from "lucide-react"');
+    .replace(/from\s+['"]lucide-react['"]/g, 'from "lucide-react"')
+    .replace(/from\s+['"]\.\/config\.js['"]/g, 'from "../config.js"'); // 修正 config.js 路径
 
 // 添加 CSS 导入和 LeanCloud SDK 导入
 const mainJsxContent = `import './index.css';
