@@ -5,4 +5,4 @@
 // Turnstile 人机验证开关
 // true  = 开启验证 (默认)
 // false = 关闭验证 (主要用于本地开发或验证服务故障时紧急关闭)
-export const ENABLE_TURNSTILE = true;
+export const ENABLE_TURNSTILE = false;
