@@ -147,7 +147,19 @@ if (fs.existsSync(error404Src)) {
     console.log('   ✅ 已复制 404.html 到 public 目录');
 }
 
-// 复制 PWA 文件到 public 目录
+// ========== 4. 生成版本信息 (用于自动更新检测) ==========
+const buildTimestamp = Date.now();
+const versionData = {
+    version: new Date().toISOString(),
+    timestamp: buildTimestamp
+};
+fs.writeFileSync(
+    path.join(publicDir, 'version.json'),
+    JSON.stringify(versionData, null, 2)
+);
+console.log(`   ✅ 已生成 version.json (版本: ${versionData.version})`);
+
+// ========== 5. 复制 PWA 文件到 public 目录 ==========
 const manifestSrc = path.join(__dirname, 'manifest.json');
 const manifestDest = path.join(publicDir, 'manifest.json');
 if (fs.existsSync(manifestSrc)) {
@@ -158,19 +170,14 @@ if (fs.existsSync(manifestSrc)) {
 const swSrc = path.join(__dirname, 'sw.js');
 const swDest = path.join(publicDir, 'sw.js');
 if (fs.existsSync(swSrc)) {
-    fs.copyFileSync(swSrc, swDest);
-    console.log('   ✅ 已复制 sw.js (Service Worker) 到 public 目录');
+    // 读取 sw.js 并替换缓存版本号为当前构建时间戳
+    let swContent = fs.readFileSync(swSrc, 'utf-8');
+    swContent = swContent.replace(
+        /const CACHE_NAME = ['"][^'"]+['"]/,
+        `const CACHE_NAME = 'app-cache-${buildTimestamp}'`
+    );
+    fs.writeFileSync(swDest, swContent);
+    console.log(`   ✅ 已生成 sw.js (缓存版本: app-cache-${buildTimestamp})`);
 }
-
-// ========== 5. 生成版本文件 (用于自动更新检测) ==========
-const versionData = {
-    version: new Date().toISOString(),
-    timestamp: Date.now()
-};
-fs.writeFileSync(
-    path.join(publicDir, 'version.json'),
-    JSON.stringify(versionData, null, 2)
-);
-console.log(`   ✅ 已生成 version.json (版本: ${versionData.version})`);
 
 console.log('\n🎉 构建准备完成！接下来执行 vite build...\n');
