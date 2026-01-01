@@ -91,7 +91,7 @@ console.log('   ✅ 已生成 src/index.css');
 // ========== 3. 生成 Vite 入口 HTML ==========
 console.log('📄 [3/3] 生成入口 HTML...');
 
-const viteHtml = `<!DOCTYPE html>
+let viteHtml = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -117,6 +117,19 @@ const viteHtml = `<!DOCTYPE html>
     
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+`; // 结束HTML模板字符串
+
+// 注入版本号显示脚本
+const buildTimeStr = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+viteHtml += `
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const div = document.createElement('div');
+        div.style = "position: fixed; bottom: 2px; right: 5px; font-size: 10px; color: rgba(0,0,0,0.2); z-index: 9999; pointer-events: none; font-family: monospace;";
+        div.textContent = "Build: ${buildTimeStr}";
+        document.body.appendChild(div);
+    });
+</script>
 </body>
 </html>
 `;
