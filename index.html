@@ -133,65 +133,65 @@
     </style>
 </head>
 <body class="text-slate-700 selection:bg-sky-100 selection:text-sky-700">
-    <!-- PWA 安装提示横幅 -->
-    <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 z-[9999] p-4 bg-gradient-to-r from-[#0c2340] to-[#1a3a5c] shadow-2xl border-t border-white/10" style="animation: slideUp 0.3s ease-out;">
-        <div style="max-width: 480px; margin: 0 auto; display: flex; align-items: center; gap: 16px;">
-            <div style="flex-shrink: 0; width: 48px; height: 48px; background: rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                <img src="./libs/alexico.png" alt="Logo" style="width: 32px; height: 32px;">
+    <!-- 微信/QQ内打开提示遮罩 -->
+    <div id="wechat-overlay" class="hidden fixed inset-0 z-[10001] flex items-center justify-center p-6" style="background: rgba(0, 0, 0, 0.95);">
+        <div style="max-width: 340px; width: 100%; text-align: center; color: white;">
+            <div style="font-size: 60px; margin-bottom: 20px;">📲</div>
+            <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 12px;">请使用浏览器打开</h2>
+            <p style="font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.8; margin-bottom: 24px;">当前在微信/QQ内打开，功能受限<br>请点击右上角 <strong style="color: #f59e0b;">⋯</strong> 菜单<br>选择「<strong style="color: #f59e0b;">在浏览器中打开</strong>」</p>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; text-align: left;">
+                <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 8px;">操作步骤：</div>
+                <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.8;">1️⃣ 点击右上角 <strong>⋯</strong> 或 <strong>···</strong><br>2️⃣ 选择「在浏览器中打开」<br>3️⃣ 在浏览器中完成安装</div>
             </div>
-            <div style="flex: 1; min-width: 0;">
-                <div style="color: white; font-weight: bold; font-size: 14px; margin-bottom: 2px;">安装 DM 后台到桌面</div>
-                <div style="color: rgba(255,255,255,0.6); font-size: 12px;">像 App 一样快速启动，支持离线缓存</div>
+        </div>
+    </div>
+    <!-- PWA 安装引导遮罩 -->
+    <div id="pwa-install-overlay" class="hidden fixed inset-0 z-[10000] flex items-center justify-center p-6" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+        <div style="max-width: 360px; width: 100%; background: linear-gradient(135deg, #0c2340 0%, #1a3a5c 100%); border-radius: 24px; padding: 32px 24px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.1);">
+            <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: rgba(255,255,255,0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center;"><img src="./libs/alexico.png" alt="Logo" style="width: 56px; height: 56px;"></div>
+            <h2 id="pwa-title" style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 8px;">安装 DM 管理后台</h2>
+            <p id="pwa-desc" style="color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 24px; line-height: 1.6;">添加到桌面，像 App 一样<br>快速启动，支持离线缓存</p>
+            <div id="pwa-features" style="text-align: left; margin-bottom: 28px; padding: 0 8px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;"><div style="width: 24px; height: 24px; background: rgba(245, 158, 11, 0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center;"><svg style="width: 14px; height: 14px; color: #f59e0b;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div><span style="color: rgba(255,255,255,0.8); font-size: 13px;">秒开应用，无需等待加载</span></div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;"><div style="width: 24px; height: 24px; background: rgba(245, 158, 11, 0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center;"><svg style="width: 14px; height: 14px; color: #f59e0b;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg></div><span style="color: rgba(255,255,255,0.8); font-size: 13px;">桌面图标，一键直达</span></div>
+                <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 24px; height: 24px; background: rgba(245, 158, 11, 0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center;"><svg style="width: 14px; height: 14px; color: #f59e0b;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg></div><span style="color: rgba(255,255,255,0.8); font-size: 13px;">全屏体验，无地址栏干扰</span></div>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                <button id="pwa-install-btn" style="padding: 8px 16px; background-color: #f59e0b; color: #1e293b; font-weight: bold; font-size: 12px; border-radius: 8px; border: none; cursor: pointer;">安装</button>
-                <button id="pwa-dismiss-btn" style="padding: 8px; color: rgba(255,255,255,0.5); background: none; border: none; cursor: pointer;">
-                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
+            <button id="pwa-install-btn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #1e293b; font-weight: bold; font-size: 15px; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">立即安装</button>
+            <div id="pwa-skip-pc" style="display: none; margin-top: 16px; text-align: center;"><span id="pwa-skip-btn" style="font-size: 10px; color: rgba(255,255,255,0.15); cursor: pointer; user-select: none;">跳过</span></div>
         </div>
     </div>
     <script>
         (function() {
-            let deferredPrompt = null;
-            const banner = document.getElementById('pwa-install-banner');
+            const overlay = document.getElementById('pwa-install-overlay');
+            const wechatOverlay = document.getElementById('wechat-overlay');
             const installBtn = document.getElementById('pwa-install-btn');
-            const dismissBtn = document.getElementById('pwa-dismiss-btn');
+            const skipContainer = document.getElementById('pwa-skip-pc');
+            const skipBtn = document.getElementById('pwa-skip-btn');
+            const titleEl = document.getElementById('pwa-title');
+            const descEl = document.getElementById('pwa-desc');
+            const featuresEl = document.getElementById('pwa-features');
+            let deferredPrompt = null;
             const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
-            const isDismissed = localStorage.getItem('pwa-dismissed');
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                if (!isInstalled && !isDismissed) {
-                    setTimeout(() => { banner.classList.remove('hidden'); }, 3000);
-                }
-            });
+            const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isInWechat = /MicroMessenger|WeChat|QQ\//i.test(navigator.userAgent);
+            if (isInWechat && !isInstalled) { wechatOverlay.classList.remove('hidden'); return; }
+            if (isMobile && !isInstalled) {
+                titleEl.textContent = '需要安装应用';
+                descEl.innerHTML = '为确保后台管理功能正常使用<br><strong style="color:#f59e0b;">必须先安装到桌面</strong>';
+                featuresEl.innerHTML = '<div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;"><div style="color: #fca5a5; font-size: 12px; line-height: 1.6;">⚠️ 网页版存在以下限制：<br>• 每次需重新输入网址<br>• 可能被浏览器清理缓存<br>• 无法添加到桌面快速启动</div></div><div style="color: rgba(255,255,255,0.5); font-size: 12px; text-align: center;">安装后可像普通 App 一样使用</div>';
+            }
+            if (!isMobile && skipContainer) skipContainer.style.display = 'block';
+            window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; if (!isInstalled) overlay.classList.remove('hidden'); });
             if (installBtn) {
                 installBtn.addEventListener('click', async () => {
-                    if (!deferredPrompt) return;
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    if (outcome === 'accepted') localStorage.setItem('pwa-dismissed', 'installed');
-                    deferredPrompt = null;
-                    banner.classList.add('hidden');
+                    if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') overlay.classList.add('hidden'); deferredPrompt = null; }
+                    else if (isIOS) { alert('📱 iPhone 安装教程\n\n【iOS 26 及更新版本】\n1️⃣ 点击右下角「⋯」(三个点)\n2️⃣ 点击「共享」图标\n3️⃣ 向下滑动，点击「添加到主屏幕」\n\n【iOS 18 及更早版本】\n1️⃣ 点击底部「↑」共享按钮\n2️⃣ 点击「添加到主屏幕」'); }
+                    else { alert('请点击浏览器菜单，选择「添加到主屏幕」或「安装应用」'); }
                 });
             }
-            if (dismissBtn) {
-                dismissBtn.addEventListener('click', () => {
-                    banner.classList.add('hidden');
-                    localStorage.setItem('pwa-dismissed', 'true');
-                });
-            }
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            if (isIOS && !window.navigator.standalone && !isDismissed) {
-                setTimeout(() => {
-                    banner.classList.remove('hidden');
-                    if (installBtn) {
-                        installBtn.textContent = '查看教程';
-                        installBtn.onclick = () => alert('请点击浏览器底部的分享按钮\\n然后选择「添加到主屏幕」');
-                    }
-                }, 3000);
-            }
+            if (skipBtn) skipBtn.addEventListener('click', () => overlay.classList.add('hidden'));
+            if (isIOS && !window.navigator.standalone && !isInstalled) { overlay.classList.remove('hidden'); if (installBtn) installBtn.textContent = '查看安装教程'; }
         })();
     </script>
     <!-- 加载进度屏幕 -->
