@@ -176,12 +176,7 @@
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             const isInWechat = /MicroMessenger|WeChat|QQ\//i.test(navigator.userAgent);
             if (isInWechat && !isInstalled) { wechatOverlay.classList.remove('hidden'); return; }
-            if (isMobile && !isInstalled) {
-                titleEl.textContent = '需要安装应用';
-                descEl.innerHTML = '为确保后台管理功能正常使用<br><strong style="color:#f59e0b;">必须先安装到桌面</strong>';
-                featuresEl.innerHTML = '<div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;"><div style="color: #fca5a5; font-size: 12px; line-height: 1.6;">⚠️ 网页版存在以下限制：<br>• 每次需重新输入网址<br>• 可能被浏览器清理缓存<br>• 无法添加到桌面快速启动</div></div><div style="color: rgba(255,255,255,0.5); font-size: 12px; text-align: center;">安装后可像普通 App 一样使用</div>';
-            }
-            if (!isMobile && skipContainer) skipContainer.style.display = 'block';
+            if (skipContainer) skipContainer.style.display = 'block';
             window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; if (!isInstalled) overlay.classList.remove('hidden'); });
             if (installBtn) {
                 installBtn.addEventListener('click', async () => {
