@@ -6,6 +6,14 @@
     <title>SQL-DMsystem管理后台</title>
     <link rel="icon" href="./libs/alexico.png" type="image/png">
     
+    <!-- PWA 支持 -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0c2340">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DM后台">
+    <link rel="apple-touch-icon" href="./libs/alexico.png">
+    
     <!-- DNS预连接优化 -->
     <link rel="dns-prefetch" href="https://esm.sh">
     <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
@@ -125,6 +133,67 @@
     </style>
 </head>
 <body class="text-slate-700 selection:bg-sky-100 selection:text-sky-700">
+    <!-- PWA 安装提示横幅 -->
+    <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 z-[9999] p-4 bg-gradient-to-r from-[#0c2340] to-[#1a3a5c] shadow-2xl border-t border-white/10" style="animation: slideUp 0.3s ease-out;">
+        <div style="max-width: 480px; margin: 0 auto; display: flex; align-items: center; gap: 16px;">
+            <div style="flex-shrink: 0; width: 48px; height: 48px; background: rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <img src="./libs/alexico.png" alt="Logo" style="width: 32px; height: 32px;">
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="color: white; font-weight: bold; font-size: 14px; margin-bottom: 2px;">安装 DM 后台到桌面</div>
+                <div style="color: rgba(255,255,255,0.6); font-size: 12px;">像 App 一样快速启动，支持离线缓存</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                <button id="pwa-install-btn" style="padding: 8px 16px; background-color: #f59e0b; color: #1e293b; font-weight: bold; font-size: 12px; border-radius: 8px; border: none; cursor: pointer;">安装</button>
+                <button id="pwa-dismiss-btn" style="padding: 8px; color: rgba(255,255,255,0.5); background: none; border: none; cursor: pointer;">
+                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            let deferredPrompt = null;
+            const banner = document.getElementById('pwa-install-banner');
+            const installBtn = document.getElementById('pwa-install-btn');
+            const dismissBtn = document.getElementById('pwa-dismiss-btn');
+            const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+            const isDismissed = localStorage.getItem('pwa-dismissed');
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                if (!isInstalled && !isDismissed) {
+                    setTimeout(() => { banner.classList.remove('hidden'); }, 3000);
+                }
+            });
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (!deferredPrompt) return;
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') localStorage.setItem('pwa-dismissed', 'installed');
+                    deferredPrompt = null;
+                    banner.classList.add('hidden');
+                });
+            }
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', () => {
+                    banner.classList.add('hidden');
+                    localStorage.setItem('pwa-dismissed', 'true');
+                });
+            }
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIOS && !window.navigator.standalone && !isDismissed) {
+                setTimeout(() => {
+                    banner.classList.remove('hidden');
+                    if (installBtn) {
+                        installBtn.textContent = '查看教程';
+                        installBtn.onclick = () => alert('请点击浏览器底部的分享按钮\\n然后选择「添加到主屏幕」');
+                    }
+                }, 3000);
+            }
+        })();
+    </script>
     <!-- 加载进度屏幕 -->
     <div id="loading-screen">
         <div>
@@ -2205,6 +2274,15 @@
                 }, 100);
             }
         });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => console.log('✅ Service Worker 已注册'))
+                    .catch((err) => console.log('❌ SW 注册失败:', err));
+            });
+        }
     </script>
 </body>
 </html>

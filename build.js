@@ -147,4 +147,19 @@ if (fs.existsSync(error404Src)) {
     console.log('   ✅ 已复制 404.html 到 public 目录');
 }
 
+// 复制 PWA 文件到 public 目录
+const manifestSrc = path.join(__dirname, 'manifest.json');
+const manifestDest = path.join(publicDir, 'manifest.json');
+if (fs.existsSync(manifestSrc)) {
+    fs.copyFileSync(manifestSrc, manifestDest);
+    console.log('   ✅ 已复制 manifest.json (PWA) 到 public 目录');
+}
+
+const swSrc = path.join(__dirname, 'sw.js');
+const swDest = path.join(publicDir, 'sw.js');
+if (fs.existsSync(swSrc)) {
+    fs.copyFileSync(swSrc, swDest);
+    console.log('   ✅ 已复制 sw.js (Service Worker) 到 public 目录');
+}
+
 console.log('\n🎉 构建准备完成！接下来执行 vite build...\n');
