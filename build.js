@@ -139,4 +139,12 @@ if (fs.existsSync(iconSrc)) {
     console.log('   ✅ 已复制 alexico.png 到 public 目录');
 }
 
+// 复制 404.html 到 public 目录
+const error404Src = path.join(__dirname, '404.html');
+const error404Dest = path.join(publicDir, '404.html');
+if (fs.existsSync(error404Src)) {
+    fs.copyFileSync(error404Src, error404Dest);
+    console.log('   ✅ 已复制 404.html 到 public 目录');
+}
+
 console.log('\n🎉 构建准备完成！接下来执行 vite build...\n');

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>404 - 页面不存在</title>
+    <link rel="icon" href="./libs/alexico.png" type="image/png">
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="./libs/tailwind.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+                        slideUp: { from: { opacity: '0', transform: 'translateY(20px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 登录页同款深色背景纹理 */
+        .login-bg {
+            background-color: #0F172A;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%), 
+                radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.1) 0px, transparent 50%);
+        }
+        
+        /* 磨砂玻璃效果 */
+        .glass-dark {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* 底部装饰波纹 */
+        .decoration-line {
+            height: 4px;
+            background: linear-gradient(90deg, #c9a227, #fcd34d, #c9a227);
+        }
+    </style>
+</head>
+<body class="login-bg h-screen w-full overflow-hidden flex flex-col items-center justify-center relative font-sans text-slate-200">
+
+    <!-- 顶部装饰条 (WeChat Tips 风格) -->
+    <div class="decoration-line absolute top-0 left-0 w-full z-20"></div>
+
+    <!-- 主体内容容器 -->
+    <div class="w-full max-w-md px-6 animate-slide-up flex flex-col items-center">
+        
+        <!-- 学校 Logo (反白) & 标题 -->
+        <div class="flex flex-col items-center mb-8">
+            <img src="./libs/反白2.png" alt="长春数字科技职业学院" class="h-20 mb-4 drop-shadow-lg opacity-90">
+            <div class="text-center">
+                <h1 class="text-white text-xl font-bold tracking-wider mb-1">系统提示</h1>
+                <p class="text-white/40 text-[10px] tracking-[0.2em] uppercase">SYSTEM NOTIFICATION</p>
+            </div>
+        </div>
+
+        <!-- 404 卡片 (深色拟态风格) -->
+        <div class="glass-dark w-full rounded-2xl shadow-2xl p-8 border-t border-white/10 relative overflow-hidden">
+            <!-- 卡片顶部金色装饰 -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
+
+            <div class="flex flex-col items-center text-center">
+                <!-- 404 大字 -->
+                <div class="text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-500 mb-2 font-mono">
+                    404
+                </div>
+                
+                <h2 class="text-lg font-medium text-amber-400 mb-2">页面未找到</h2>
+                
+                <p class="text-slate-400 text-sm mb-8 leading-relaxed">
+                    抱歉，您访问的路径不存在或已被移除。<br>请检查网址是否正确，或返回首页。
+                </p>
+
+                <!-- 倒计时提示 -->
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/50 border border-slate-700/50 mb-6">
+                    <div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                    <span class="text-xs text-slate-400 font-mono" id="countdown-text">5秒后自动返回首页</span>
+                </div>
+
+                <!-- 按钮组 (深色风格) -->
+                <div class="w-full space-y-3">
+                    <button onclick="goHome()" class="w-full py-3 bg-[#0c2340] hover:bg-[#1a3a5a] text-white rounded-lg shadow-lg border border-slate-700 transition-all active:scale-95 text-sm font-medium flex items-center justify-center gap-2 group">
+                        <span>返回登录页</span>
+                        <svg class="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    </button>
+                    
+                    <button onclick="history.back()" class="w-full py-3 bg-transparent hover:bg-white/5 text-slate-400 hover:text-white rounded-lg border border-slate-700 hover:border-slate-500 transition-all active:scale-95 text-sm font-medium">
+                        返回上一页
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部版权 -->
+        <div class="mt-8 text-center">
+            <p class="text-[10px] text-slate-600">
+                &copy; 长春数字科技职业学院 | Smart Campus System
+            </p>
+        </div>
+    </div>
+
+    <!-- 背景装饰光效 -->
+    <div class="fixed top-1/4 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="fixed bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <script>
+        function goHome() {
+            window.location.href = '/';
+        }
+
+        let seconds = 5;
+        const countdownEl = document.getElementById('countdown-text');
+        
+        const timer = setInterval(() => {
+            seconds--;
+            if (countdownEl) {
+                countdownEl.innerText = `${seconds}秒后自动返回首页`;
+            }
+            if (seconds <= 0) {
+                clearInterval(timer);
+                goHome();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
