@@ -123,6 +123,7 @@ let viteHtml = `<!DOCTYPE html>
 const buildTimeStr = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
 viteHtml += `
 <script>
+    window.BUILD_TIME = "${buildTimeStr}";
     document.addEventListener('DOMContentLoaded', () => {
         const div = document.createElement('div');
         div.style = "position: fixed; bottom: 2px; right: 5px; font-size: 10px; color: rgba(0,0,0,0.2); z-index: 9999; pointer-events: none; font-family: monospace;";
