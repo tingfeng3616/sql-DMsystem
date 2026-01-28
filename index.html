@@ -372,15 +372,7 @@
             );
         });
 
-        const CollegeConfigPanel = ({ config }) => (
-            <GenericConfigPanel 
-                config={config} 
-                className="CollegeConfig" 
-                title="学院/系部" 
-                fields={[{key:'name', label:'学院名称', placeholder:'例如：智能制造学院'}]}
-                renderItem={(item) => <div className="font-bold text-slate-700">{item.name}</div>}
-            />
-        );
+
 
         const ApartmentConfigPanel = ({ config }) => (
             <GenericConfigPanel 
@@ -1081,7 +1073,7 @@
             );
         });
 
-        const ApartmentConfigPanel = React.memo(({ config }) => {
+        const ApartmentConfigPanel_Old = React.memo(({ config }) => {
             const [items, setItems] = useState([]);
             const [loading, setLoading] = useState(false);
             const [editingItem, setEditingItem] = useState(null);
@@ -1190,7 +1182,7 @@
             );
         });
 
-        const ViolationConfigPanel = React.memo(({ config }) => {
+        const ViolationConfigPanel_Old = React.memo(({ config }) => {
             const [items, setItems] = useState([]);
             const [loading, setLoading] = useState(false);
             const [editingItem, setEditingItem] = useState(null);
