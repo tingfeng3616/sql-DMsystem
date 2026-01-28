@@ -351,6 +351,149 @@
                 }
             },
 
+            // --- Config CRUD ---
+            async getConfig(config, className) {
+                const res = await fetch(`${config.apiUrl}/${className}?order=-createdAt`, { headers: this.getHeaders(config) });
+                const data = await res.json();
+                return Array.isArray(data) ? data : (data.results || []);
+            },
+            
+            async addConfig(config, className, item) {
+                const res = await fetch(`${config.apiUrl}/${className}`, {
+                    method: 'POST',
+                    headers: this.getHeaders(config),
+                    body: JSON.stringify(item)
+                });
+                return await res.json();
+            },
+
+            async deleteConfig(config, className, objectId) {
+                await fetch(`${config.apiUrl}/${className}/${objectId}`, {
+                    method: 'DELETE',
+                    headers: this.getHeaders(config)
+                });
+            }
+        };
+
+        // --- Generic Config Panel ---
+        const GenericConfigPanel = React.memo(({ config, title, className, fields, renderItem }) => {
+            const [items, setItems] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [newItem, setNewItem] = useState({});
+
+            useEffect(() => {
+                loadItems();
+            }, [config]);
+
+            const loadItems = async () => {
+                setLoading(true);
+                try {
+                    const data = await LCService.getConfig(config, className);
+                    setItems(data);
+                } catch(e) { alert("加载失败: " + e.message); }
+                finally { setLoading(false); }
+            };
+
+            const handleAdd = async (e) => {
+                e.preventDefault();
+                try {
+                    const res = await LCService.addConfig(config, className, newItem);
+                    setItems([{...newItem, objectId: res.objectId}, ...items]);
+                    setNewItem({});
+                } catch(e) { alert("添加失败"); }
+            };
+
+            const handleDelete = async (id) => {
+                if(!confirm("确认删除？")) return;
+                try {
+                    await LCService.deleteConfig(config, className, id);
+                    setItems(items.filter(i => i.objectId !== id));
+                } catch(e) { alert("删除失败"); }
+            };
+
+            return (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <h3 className="font-bold text-lg text-slate-800 mb-6 flex items-center gap-2">
+                        <Layers className="text-sky-500" size={20}/> {title}管理
+                    </h3>
+                    
+                    {/* List */}
+                    <div className="space-y-3 mb-8">
+                        {loading ? <div className="text-center py-10 text-slate-400"><Loader className="animate-spin mx-auto mb-2"/> 加载中...</div> : 
+                        items.length === 0 ? <div className="text-center py-10 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">暂无配置数据</div> :
+                        items.map(item => (
+                            <div key={item.objectId} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 group hover:border-sky-200 transition-all">
+                                <div>{renderItem(item)}</div>
+                                <button onClick={() => handleDelete(item.objectId)} className="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors">
+                                    <Trash2 size={16}/>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Add Form */}
+                    <form onSubmit={handleAdd} className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                        <h4 className="font-bold text-sm text-slate-600 mb-4">添加新项目</h4>
+                        <div className="flex gap-3 items-end">
+                            {fields.map(f => (
+                                <div key={f.key} className="flex-1">
+                                    <label className="text-xs font-bold text-slate-400 block mb-1.5">{f.label}</label>
+                                    <input 
+                                        required 
+                                        value={newItem[f.key] || ''} 
+                                        onChange={e => setNewItem({...newItem, [f.key]: e.target.value})}
+                                        className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:border-sky-500 outline-none transition-all"
+                                        placeholder={f.placeholder}
+                                    />
+                                </div>
+                            ))}
+                            <button type="submit" className="px-6 py-2.5 bg-slate-800 text-white rounded-lg font-bold text-sm hover:bg-slate-900 transition-colors shadow-lg shadow-slate-800/20">
+                                <Plus size={18}/> 添加
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            );
+        });
+
+        const CollegeConfigPanel = ({ config }) => (
+            <GenericConfigPanel 
+                config={config} 
+                className="CollegeConfig" 
+                title="学院/系部" 
+                fields={[{key:'name', label:'学院名称', placeholder:'例如：智能制造学院'}]}
+                renderItem={(item) => <div className="font-bold text-slate-700">{item.name}</div>}
+            />
+        );
+
+        const ApartmentConfigPanel = ({ config }) => (
+            <GenericConfigPanel 
+                config={config} 
+                className="ApartmentConfig" 
+                title="公寓楼号" 
+                fields={[{key:'name', label:'公寓名称', placeholder:'例如：六公寓'}]}
+                renderItem={(item) => <div className="font-bold text-slate-700">{item.name}</div>}
+            />
+        );
+
+        const ViolationConfigPanel = ({ config }) => (
+            <GenericConfigPanel 
+                config={config} 
+                className="ViolationConfig" 
+                title="违纪类型" 
+                fields={[
+                    {key:'type', label:'违纪类型', placeholder:'例如：晚归'},
+                    {key:'score', label:'扣分分值', placeholder:'例如：2'}
+                ]}
+                renderItem={(item) => (
+                    <div>
+                        <span className="font-bold text-slate-700 mr-3">{item.type}</span>
+                        <span className="text-xs font-bold px-2 py-0.5 bg-red-100 text-red-600 rounded">扣 {item.score} 分</span>
+                    </div>
+                )}
+            />
+        );
+
             async getUsers(config) {
                 // 检查缓存
                 const cacheKey = `users_${config.appId}`;
