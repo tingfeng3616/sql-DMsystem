@@ -267,27 +267,27 @@
         const PRESET_CONFIGS = [
             {
                 name: "智能制造学院-早操系统账号密码数据库",
-                appId: "E7BcO1vNtlBAM0zKDXQLrKPr-gzGzoHsz",
-                appKey: "3QUGql9X3xbs5yTDg657DeUd",
-                apiUrl: "https://e7bco1vn.lc-cn-n1-shared.com/1.1/classes"
+                appId: "znzz_sume",
+                appKey: "znzz-key",
+                apiUrl: "https://api.alexteo.cn/api/classes"
             },
             {
                 name: "长数科-早操系统账号密码数据库",
-                appId: "wGhLHtQZIcgSgdGWCxbXvOGv-gzGzoHsz",
-                appKey: "3Jp9Z9Hiw39NzdQURBRnm9xT",
-                apiUrl: "https://wghlhtqz.lc-cn-n1-shared.com/1.1/classes"
+                appId: "sume",
+                appKey: "sume-key",
+                apiUrl: "https://api.alexteo.cn/api/classes"
             },
             {
                 name: "长数科-查寝系统账号密码数据库",
-                appId: "lHeu5bwNCGW09E4HuF2cMkYa-gzGzoHsz",
-                appKey: "lAePnkqMmVSuBuAN00YAtVLp",
-                apiUrl: "https://lheu5bwn.lc-cn-n1-shared.com/1.1/classes"
+                appId: "susd",
+                appKey: "susd-key",
+                apiUrl: "https://api.alexteo.cn/api/classes"
             },
             {
                 name: "长数科-晚自习考勤系统账号密码数据库",
-                appId: "0K4AIJMJHwUIxhn6VWNIZBbK-gzGzoHsz",
-                appKey: "F0rmpsJF9KNOhWz3NhcRiih2",
-                apiUrl: "https://0k4aijmj.lc-cn-n1-shared.com/1.1/classes"
+                appId: "evening",
+                appKey: "evening-key",
+                apiUrl: "https://api.alexteo.cn/api/classes"
             }
         ];
 
@@ -299,8 +299,8 @@
             
             getHeaders(config) {
                 return {
-                    "X-LC-Id": config.appId,
-                    "X-LC-Key": config.appKey,
+                    "X-App-Id": config.appId,
+                    "X-App-Key": config.appKey,
                     "Content-Type": "application/json"
                 };
             },
