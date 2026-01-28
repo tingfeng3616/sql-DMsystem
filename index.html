@@ -321,30 +321,30 @@
 
             // 登录验证
             async login(config, username, password) {
-                // 构建查询条件：用户名、密码匹配，且角色必须是 admin 或 superadmin
-                const where = JSON.stringify({ 
-                    username: username, 
-                    password: password
-                });
-                
                 try {
-                    const res = await fetch(`${config.apiUrl}/AdminUser?where=${encodeURIComponent(where)}`, { 
-                        headers: this.getHeaders(config) 
+                    const res = await fetch(`${config.apiUrl.replace('/1.1/classes', '')}/api/login`, {
+                        method: 'POST',
+                        headers: this.getHeaders(config),
+                        body: JSON.stringify({ username, password }),
+                        cache: 'no-store'
                     });
                     
-                    if (!res.ok) throw new Error("验证请求失败");
-                    
                     const data = await res.json();
-                    if (data && data.length > 0) {
-                        const user = data[0];
-                        // 只允许 admin 或 superadmin 角色登录
+                    
+                    if (!res.ok) {
+                        throw new Error(data.error || "账号或密码错误");
+                    }
+                    
+                    if (data.success && data.user) {
+                        const user = data.user;
+                         // 只允许 admin 或 superadmin 角色登录
                         if (user.role === 'admin' || user.role === 'superadmin') {
                             return user;
                         } else {
                             throw new Error("您没有管理后台访问权限");
                         }
                     } else {
-                        throw new Error("账号或密码错误");
+                        throw new Error("登录失败：未知错误");
                     }
                 } catch (e) {
                     throw e;
