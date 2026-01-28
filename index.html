@@ -267,27 +267,27 @@
         const PRESET_CONFIGS = [
             {
                 name: "智能制造学院-早操系统账号密码数据库",
-                appId: "znzz_sume",
-                appKey: "znzz-key",
-                apiUrl: "https://api.alexteo.cn/api/classes"
+                appId: "imme",
+                appKey: "imme-key",
+                apiUrl: "https://api.alexteo.cn/1.1/classes"
             },
             {
                 name: "长数科-早操系统账号密码数据库",
                 appId: "sume",
                 appKey: "sume-key",
-                apiUrl: "https://api.alexteo.cn/api/classes"
+                apiUrl: "https://api.alexteo.cn/1.1/classes"
             },
             {
                 name: "长数科-查寝系统账号密码数据库",
                 appId: "susd",
                 appKey: "susd-key",
-                apiUrl: "https://api.alexteo.cn/api/classes"
+                apiUrl: "https://api.alexteo.cn/1.1/classes"
             },
             {
                 name: "长数科-晚自习考勤系统账号密码数据库",
                 appId: "evening",
                 appKey: "evening-key",
-                apiUrl: "https://api.alexteo.cn/api/classes"
+                apiUrl: "https://api.alexteo.cn/1.1/classes"
             }
         ];
 
@@ -335,8 +335,8 @@
                     if (!res.ok) throw new Error("验证请求失败");
                     
                     const data = await res.json();
-                    if (data.results && data.results.length > 0) {
-                        const user = data.results[0];
+                    if (data && data.length > 0) {
+                        const user = data[0];
                         // 只允许 admin 或 superadmin 角色登录
                         if (user.role === 'admin' || user.role === 'superadmin') {
                             return user;
@@ -366,7 +366,7 @@
                 });
                 if (!res.ok) throw new Error("获取用户列表失败");
                 const data = await res.json();
-                const users = data.results.filter(u => u.username);
+                const users = (Array.isArray(data) ? data : data.results || []).filter(u => u.username);
                 
                 // 存储到缓存
                 this._cache.set(cacheKey, { data: users, timestamp: Date.now() });
@@ -454,7 +454,7 @@
                 }
                 if (!res.ok) throw new Error("获取学院配置失败");
                 const data = await res.json();
-                const configs = data.results || [];
+                const configs = (Array.isArray(data) ? data : data.results) || [];
                 
                 this._cache.set(cacheKey, { data: configs, timestamp: Date.now() });
                 return configs;
@@ -534,7 +534,7 @@
                 }
                 if (!res.ok) throw new Error("获取公寓配置失败");
                 const data = await res.json();
-                const configs = data.results || [];
+                const configs = (Array.isArray(data) ? data : data.results) || [];
                 
                 this._cache.set(cacheKey, { data: configs, timestamp: Date.now() });
                 return configs;
@@ -590,7 +590,7 @@
                 }
                 if (!res.ok) throw new Error("获取违纪类型配置失败");
                 const data = await res.json();
-                const configs = data.results || [];
+                const configs = (Array.isArray(data) ? data : data.results) || [];
                 
                 this._cache.set(cacheKey, { data: configs, timestamp: Date.now() });
                 return configs;
@@ -1457,7 +1457,7 @@
             };
 
             const handleAdd = () => {
-                const newCfg = { name: `新环境 ${configs.length + 1}`, appId: '', appKey: '', apiUrl: 'https://域名.com/1.1/classes' };
+                const newCfg = { name: `新环境 ${configs.length + 1}`, appId: '', appKey: '', apiUrl: 'https://api.alexteo.cn/1.1/classes' };
                 saveConfigs([...configs, newCfg]);
                 onEdit(newCfg, configs.length);
             };
@@ -1522,9 +1522,6 @@
                 try {
                     let cleanUrl = form.apiUrl.trim();
                     if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
-                    if (!cleanUrl.endsWith('/classes')) {
-                        if (!cleanUrl.includes('/1.1/')) cleanUrl += '/1.1/classes';
-                    }
                     const newConfig = { ...form, apiUrl: cleanUrl };
                     await LCService.checkConfig(newConfig);
                     onSave(newConfig);
