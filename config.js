@@ -12,4 +12,4 @@
 // 【开关说明】
 //   true  = 开启人机验证（登录时需要完成验证）
 //   false = 关闭人机验证（登录时跳过验证）
-export const ENABLE_TURNSTILE = true;
+export const ENABLE_TURNSTILE = false;
