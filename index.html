@@ -482,13 +482,17 @@
                 className="ViolationConfig" 
                 title="违纪类型" 
                 fields={[
-                    {key:'type', label:'违纪类型', placeholder:'例如：晚归'},
-                    {key:'score', label:'扣分分值', placeholder:'例如：2'}
+                    {key:'category', label:'违纪大类', placeholder:'例如：违规电器'},
+                    {key:'type', label:'违纪名称', placeholder:'例如：电吹风'},
+                    {key:'detail', label:'细则说明', placeholder:'细则描述'},
+                    {key:'score', label:'扣分', placeholder:'2'}
                 ]}
                 renderItem={(item) => (
-                    <div>
-                        <span className="font-bold text-slate-700 mr-3">{item.type}</span>
-                        <span className="text-xs font-bold px-2 py-0.5 bg-red-100 text-red-600 rounded">扣 {item.score} 分</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold px-2 py-0.5 bg-slate-200 text-slate-600 rounded">{item.category || '无大类'}</span>
+                        <span className="font-bold text-slate-700">{item.type}</span>
+                        {item.detail && item.detail !== item.type && <span className="text-xs text-slate-400">({item.detail})</span>}
+                        <span className="text-xs font-bold px-2 py-0.5 bg-red-100 text-red-600 rounded ml-auto">扣 {item.score} 分</span>
                     </div>
                 )}
             />
