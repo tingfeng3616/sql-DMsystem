@@ -290,6 +290,14 @@
             }
         ];
 
+        // 清理旧版本基于 LeanCloud 的配置缓存 (一次性迁移)
+        if (localStorage.getItem('lc_db_version') !== '2.0.1') {
+            localStorage.removeItem('lc_db_configs');
+            localStorage.removeItem('lc_last_app_id');
+            localStorage.setItem('lc_db_version', '2.0.1');
+            console.log('🔄 检测到新版本环境，已清理旧的数据库配置缓存');
+        }
+
         // --- Generic Config Panel ---
         const GenericConfigPanel = React.memo(({ config, title, className, fields, renderItem }) => {
             const [items, setItems] = useState([]);
