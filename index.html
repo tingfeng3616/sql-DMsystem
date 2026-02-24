@@ -1607,10 +1607,24 @@
                         </form>
                     </div>
                     
-                    <div className="absolute bottom-6 text-center w-full text-[10px] text-slate-400 font-medium">
-                        <Lock size={12} className="inline mr-1"/>
-                        End-to-End Encrypted Session | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 transition-colors">ICP备案/许可证号：黑ICP备2025036493号</a>
-                        <div className="mt-1 font-mono opacity-50">Build: {window.BUILD_TIME || 'Dev'}</div>
+                    <div className="absolute bottom-6 left-0 right-0 w-full z-10 pointer-events-auto">
+                        <div className="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-all duration-300">
+                            <div className="flex flex-row items-center justify-center gap-3 text-[11px] font-medium tracking-wider whitespace-nowrap">
+                                <span><Lock size={12} className="inline mr-1 -mt-0.5"/>End-to-End Encrypted Session</span>
+                                <span>|</span>
+                                <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-800 transition-colors">ICP备案/许可证号：黑ICP备2025036493号</a>
+                                <span>|</span>
+                                <a href="https://beian.mps.gov.cn/#/query/webSearch?code=23011002000716" rel="noreferrer" target="_blank" className="flex items-center gap-1 hover:text-slate-800 transition-colors">
+                                    <img src="./libs/备案图标.png" alt="" className="w-3.5 h-3.5 opacity-80" />
+                                    黑公网安备23011002000716号
+                                </a>
+                            </div>
+                            <div className="flex flex-row items-center justify-center gap-3 text-[10px] opacity-80 whitespace-nowrap mt-1">
+                                <span>Developer: Li Wenxuan (Alexteo) & Contact: wenxuan0327@qq.com</span>
+                                <span>|</span>
+                                <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">Build: {window.BUILD_TIME || 'Dev'}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
