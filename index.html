@@ -204,43 +204,7 @@
             </div>
         </div>
     </div>
-    <!-- PWA 安装引导横幅 -->
-    <div id="pwa-install-overlay" class="hidden" style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999; padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom));">
-        <div style="max-width: 480px; margin: 0 auto; background: linear-gradient(135deg, #0c2340 0%, #1a3a5c 100%); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.1);">
-            <img src="./libs/alexico.png" alt="Logo" style="width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;">
-            <div style="flex: 1; min-width: 0;">
-                <div id="pwa-title" style="color: white; font-size: 14px; font-weight: 600; margin-bottom: 2px;">添加到桌面</div>
-                <div id="pwa-desc" style="color: rgba(255,255,255,0.6); font-size: 12px;">秒开应用，像 App 一样使用</div>
-            </div>
-            <button id="pwa-install-btn" style="padding: 8px 16px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #1e293b; font-weight: 600; font-size: 13px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; flex-shrink: 0;">安装</button>
-            <button id="pwa-skip-btn" style="width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" aria-label="关闭">
-                <svg style="width: 14px; height: 14px; color: rgba(255,255,255,0.6);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-    </div>
-    <script>
-        (function() {
-            const overlay = document.getElementById('pwa-install-overlay');
-            const wechatOverlay = document.getElementById('wechat-overlay');
-            const installBtn = document.getElementById('pwa-install-btn');
-            const skipBtn = document.getElementById('pwa-skip-btn');
-            let deferredPrompt = null;
-            const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            const isInWechat = /MicroMessenger|WeChat|QQ\//i.test(navigator.userAgent);
-            if (isInWechat && !isInstalled) { wechatOverlay.classList.remove('hidden'); return; }
-            window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; if (!isInstalled) overlay.classList.remove('hidden'); });
-            if (installBtn) {
-                installBtn.addEventListener('click', async () => {
-                    if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') overlay.classList.add('hidden'); deferredPrompt = null; }
-                    else if (isIOS) { alert('📱 iPhone 安装教程\n\n【iOS 26 及更新版本】\n1️⃣ 点击右下角「⋯」(三个点)\n2️⃣ 点击「共享」图标\n3️⃣ 向下滑动，点击「添加到主屏幕」\n\n【iOS 18 及更早版本】\n1️⃣ 点击底部「↑」共享按钮\n2️⃣ 点击「添加到主屏幕」'); }
-                    else { alert('请点击浏览器菜单，选择「添加到主屏幕」或「安装应用」'); }
-                });
-            }
-            if (skipBtn) skipBtn.addEventListener('click', () => overlay.classList.add('hidden'));
-            if (isIOS && !window.navigator.standalone && !isInstalled) { overlay.classList.remove('hidden'); if (installBtn) installBtn.textContent = '查看教程'; }
-        })();
-    </script>
+
     <!-- 加载进度屏幕 -->
     <div id="loading-screen">
         <div>
