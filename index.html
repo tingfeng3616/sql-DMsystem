@@ -24,7 +24,9 @@
     <!-- 关键资源预加载 -->
     <link rel="preload" href="./libs/tailwind.js" as="script">
     <link rel="preload" href="./libs/babel.min.js" as="script">
-    <link rel="preload" href="https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" as="style">
+    <!-- 字体异步加载：先用系统字体渲染，字体到达后自动替换 -->
+    <link rel="preconnect" href="https://fonts.loli.net" crossorigin>
+    <link rel="stylesheet" href="https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" media="print" onload="this.media='all'">
     
     <!-- Tailwind CSS - 关键CSS框架 -->
     <script src="./libs/tailwind.js"></script>
@@ -76,9 +78,7 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
     <style>
-        /* 使用国内镜像源 fonts.loli.net 替代 fonts.googleapis.com */
-        /* 字体异步加载，使用系统字体作为fallback */
-        @import url('https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+        /* 字体已通过 <link> 异步加载，这里只设置 font-family */
         
         body { 
             font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; 

@@ -33,7 +33,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
-  if (request.url.includes('lncld') || request.url.includes('leancloud')) return;
+  if (request.url.includes('api.alexteo.cn') || request.url.includes('challenges.cloudflare.com')) return;
 
   // 跳过 version.json - 版本检测必须总是从网络获取最新
   if (request.url.includes('version.json')) {
