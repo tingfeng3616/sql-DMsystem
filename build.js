@@ -154,6 +154,18 @@ if (fs.existsSync(iconSrc)) {
     console.log('   ✅ 已复制 alexico.png 到 public 目录');
 }
 
+// 复制 libs/备案图标.png 到 public/libs 目录（保持原始路径结构）
+const libsPublicDir = path.join(publicDir, 'libs');
+if (!fs.existsSync(libsPublicDir)) {
+    fs.mkdirSync(libsPublicDir, { recursive: true });
+}
+const beianIconSrc = path.join(__dirname, 'libs', '备案图标.png');
+const beianIconDest = path.join(libsPublicDir, '备案图标.png');
+if (fs.existsSync(beianIconSrc)) {
+    fs.copyFileSync(beianIconSrc, beianIconDest);
+    console.log('   ✅ 已复制 备案图标.png 到 public/libs 目录');
+}
+
 // 复制 404.html 到 public 目录
 const error404Src = path.join(__dirname, '404.html');
 const error404Dest = path.join(publicDir, '404.html');
