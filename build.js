@@ -106,6 +106,9 @@ let viteHtml = `<!DOCTYPE html>
     
     <!-- Cloudflare Turnstile -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    
+    <!-- SheetJS for Excel Import -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 </head>
 <body class="text-slate-700 selection:bg-sky-100 selection:text-sky-700">
     <!-- 加载进度屏幕 -->
